@@ -743,6 +743,12 @@ html.show-mobile-nav .navbar-list {
 .page-container .current {
   color: var(--theme-text-primary);
 }
+@font-face {
+  font-family: 'Fira Code';
+  src: local('Fira Code'), url("../../fonts/FiraCode-Regular.woff2") format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
 .markdown-body {
   color: var(--theme-text-primary);
 }
@@ -927,7 +933,7 @@ html.show-mobile-nav .navbar-list {
 }
 .markdown-body pre,
 .markdown-body code {
-  font-family: "Source Code Pro", Consolas, Monaco, Menlo, Consolas, monospace;
+  font-family: 'Fira Code', monospace;
 }
 .markdown-body code {
   padding: 0 0.3em;
