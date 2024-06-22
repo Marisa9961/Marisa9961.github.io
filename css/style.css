@@ -937,13 +937,12 @@ html.show-mobile-nav .navbar-list {
 }
 .markdown-body code {
   padding: 0 0.3em;
-  background: var(--theme-text-low);
-  text-shadow: 0 1px var(--theme-bg-high);
-}
-.markdown-body pre code {
-  background: none;
-  text-shadow: none;
-  padding: 0;
+  color: var(--theme-text-primary);
+  background: var(--theme-bg-shadow);
+  border: 2px solid var(--theme-border-primary);
+  border-radius: 7px;
+  font-weight: bold;
+  display: inline;
 }
 .markdown-body pre,
 .markdown-body .highlight {
@@ -951,6 +950,16 @@ html.show-mobile-nav .navbar-list {
   overflow: auto;
   color: #ccc;
   padding: 15px 20px;
+  border-radius: 7px;
+}
+.markdown-body pre code {
+  color: inherit;
+  background: none;
+  text-shadow: none;
+  border: 0px;
+  font-weight: normal;
+  display: block;
+  padding: 0;
 }
 .markdown-body .highlight .gutter pre,
 .markdown-body .gist .gist-file .gist-data .line-numbers {
