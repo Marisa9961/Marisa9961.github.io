@@ -22,7 +22,7 @@
 
   
 
-  <title>你好，世界 | Marisa9961</title>
+  <title>STM32 DAC 性能拓展 | Marisa9961</title>
 
   
 
@@ -45,7 +45,7 @@
 <!-- header container -->
 <header class="header-container post">
   
-    <div class="post-image" style="background-image: url(https://s2.loli.net/2024/06/10/PnAgQcR6XS1UIVb.jpg)"></div>
+    <div class="post-image" style="background-image: url(https://s2.loli.net/2024/06/10/iMcQbEFkVRUDqpa.jpg)"></div>
   
 
   <!-- navbar -->
@@ -98,20 +98,22 @@
     <div class="header-content">
       <div class="post-text layout-block">
         <div class="layout-margin">
-          <h1 class="title-wrap">你好，世界</h1>
+          <h1 class="title-wrap">STM32 DAC 性能拓展</h1>
           <h2 class="title-sub-wrap">
             <strong>Marisa9961</strong>
             <span>发布于</span>
-            <time  class="article-date" datetime="2024-04-28T08:50:46.000Z" itemprop="datePublished">2024-04-28</time>
+            <time  class="article-date" datetime="2024-06-20T03:49:08.000Z" itemprop="datePublished">2024-06-20</time>
           </h2>
           <ul class="wrap-list dark">
   
-    <li><a href="/categories/Frontend/">📒 Frontend</a></li>
+    <li><a href="/categories/IC/">📒 IC</a></li>
   
 </ul>
           <ul class="wrap-list dark">
   
-    <li><a href="/tags/Hexo/">🏷️ Hexo</a></li>
+    <li><a href="/tags/STM32/">🏷️ STM32</a></li>
+  
+    <li><a href="/tags/DAC/">🏷️ DAC</a></li>
   
 </ul>
         </div>
@@ -135,11 +137,107 @@
       
       
       <section class="article-entry markdown-body layout-margin content-padding--large soft-size--large soft-style--box">
-        <h1 id="👋你好，世界"><a href="#👋你好，世界" class="headerlink" title="👋你好，世界"></a>👋你好，世界</h1><p>这是一个利用Hexo框架搭建的个人博客网站，使用的主题为<a target="_blank" rel="noopener" href="https://github.com/miiiku/hexo-theme-flexblock">flexblock</a></p>
-<p>鉴于本人并不擅长前端开发，搭建此博客仅凭兴趣，只为随缘分享一些技术相关的内容。</p>
-<p>您在本站即将看到关于嵌入式开发、C&#x2F;C++开发、Linux以及其他零散的技术内容。</p>
-<p>还需提醒的是，本人水平不足，技术有限，文中如有纰漏，欢迎指出并修正。</p>
-<p><img src="https://s2.loli.net/2024/06/10/DBjA5WEeOarhmgs.jpg" alt="35678607" title="pid:35678607"></p>
+        <h1 id="⚙️STM32-DAC-性能拓展"><a href="#⚙️STM32-DAC-性能拓展" class="headerlink" title="⚙️STM32 DAC 性能拓展"></a>⚙️STM32 DAC 性能拓展</h1><h2 id="引入"><a href="#引入" class="headerlink" title="引入"></a>引入</h2><p>最近研究STM32G4系列的时候，在手册里看到了如下内容。</p>
+
+    <figure class="figure-image">
+      <img src="https://s2.loli.net/2024/06/22/rxEXiL8A6k4Wdaq.png" alt="G431的DAC采样率" loading="lazy" />
+      <figcaption>G431的DAC采样率</figcaption>
+    </figure>
+  
+
+<p>图中提到的 <code>unbuffered channels</code> 居然能实现 <strong>15MSPS</strong> 的DAC采样率。也就是说如果以15个点描绘周期，STM32的内嵌DAC就能突破 <strong>1MHz</strong> 的大关。</p>
+<p>不过这样其实没什么实际意义，15个点对于绝大多数波形而言都是不够用的。而且仔细一看，这里还有个 <code>internal</code> 的限定，也就是说，只有DAC内部通道才能用这么高的采样率。</p>
+<p>虽然白高兴了一场，但在搜集资料的途中，倒还真让我找到了一种提升DAC输出性能的办法：通过禁用内部 <code>buffer</code> ，并在引脚上外接高性能运放，可以完全解放DAC的性能上限。</p>
+<p>具体可以参考下面这篇来自ST官方的文章：</p>
+<p><a target="_blank" rel="noopener" href="https://www.st.com/resource/en/application_note/dm00129215-extending-the-dac-performance-of-stm32-microcontrollers-stmicroelectronics.pdf">Extending the DAC performance of STM32 microcontrollers</a></p>
+<p>以及这张表中的数据：</p>
+
+    <figure class="figure-image">
+      <img src="https://s2.loli.net/2024/06/22/g7FJTEZQqoGa5RM.png" alt="ST各系列芯片DAC极限采样率" loading="lazy" />
+      <figcaption>ST各系列芯片DAC极限采样率</figcaption>
+    </figure>
+  
+
+<h2 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h2><h3 id="DAC等效电路"><a href="#DAC等效电路" class="headerlink" title="DAC等效电路"></a>DAC等效电路</h3>
+    <figure class="figure-image">
+      <img src="https://s2.loli.net/2024/06/22/5qsju1DEHFIoteT.png" alt="内部DAC等效模型" loading="lazy" />
+      <figcaption>内部DAC等效模型</figcaption>
+    </figure>
+  
+
+<p>首先，我们先来看看STM32的DAC等效模型。在芯片内部的电路中，DAC的输出端结构实际上是一个<strong>反相跟随器</strong>。</p>
+<ul>
+<li><p>当选择 <strong>Output Buffer ON (输出缓冲开启)</strong> ，则S1，S2闭合，那么电流会经过内部运放的反相跟随输出。<br> 此时的放大增益为 $A_v &#x3D; -1$<br> 当选择使用输出缓冲的时候，输出频率的速度就取决于内部运放的性能，也就是手册中标称的 <strong>1MHz</strong> 。</p>
+</li>
+<li><p>当选择 <strong>Output Buffer OFF (输出缓冲关闭)</strong> ，则S1，S2断开，电流直接经过 $R_a$ 和 $R_b$ 输出到外部引脚。<br> 若是不使用输出缓冲，那么DAC的输出端就是纯阻性。而外接的负载如果具有容性，那么就会构成RC回路，造成输出频率的<strong>进一步下降</strong>。</p>
+</li>
+</ul>
+<p>关于输出缓冲关闭的情况下，以文中提到的以STM32F407为例，在最大阻值为15$k\Omega$，容性负载10$pF$的情况下，求得DAC的 <code>settling time</code> 仅有1.8$\mu s$左右，即 <strong>555kHz</strong> 。</p>
+<p>这让本就不高的DAC输出速率雪上加霜😖</p>
+<h3 id="外部运放的实现"><a href="#外部运放的实现" class="headerlink" title="外部运放的实现"></a>外部运放的实现</h3>
+    <figure class="figure-image">
+      <img src="https://s2.loli.net/2024/06/22/hm62fsxbzkGYDwR.png" alt="外部运放设置" loading="lazy" />
+      <figcaption>外部运放设置</figcaption>
+    </figure>
+  
+
+<p>前面提到了外部容性的影响，而如果我们能在引脚上额外连接一个运放，那么就能忽视 <code>DACOUT capacitance</code> ,也就是DAC输出的容性负载，以及其带来的负面影响。</p>
+<p>其次如果这个外接运放的<strong>性能足够高</strong>，那么就足以支持更高采样率的DAC信号输出。而且这里的反馈电阻$R_1$需要与内部的$R_{DAC}$相等，这样才能得到正确的增益大小。</p>
+<h3 id="DMA双重数据模式"><a href="#DMA双重数据模式" class="headerlink" title="DMA双重数据模式"></a>DMA双重数据模式</h3>
+    <figure class="figure-image">
+      <img src="https://s2.loli.net/2024/06/22/QxDoIEfZLvCzUt9.png" alt="double data mode" loading="lazy" />
+      <figcaption>double data mode</figcaption>
+    </figure>
+  
+
+<p>除此之外，这里还有个需要额外注意的小特性。部分STM32芯片支持所谓的 <code>Double Data Mode</code> ，例如G4系列。这个模式允许每次DMA传输两组数据，将两组数据分别存储在前后16bit上，共同组成32bit的数据，一次性传输，这样就能提升DMA的带宽利用率。</p>
+<p>不过根据文章提供的DAC极限采样率表所展示的，实际带来的DAC输出频率提升并不是很多，各位读者手中的芯片如果不支持这个功能也无妨，仅从表中来看似乎支持这个功能的芯片并不多见(表中只有 <code>G4 Series</code> 有这项测试)。</p>
+<h2 id="实践"><a href="#实践" class="headerlink" title="实践"></a>实践</h2><h3 id="外部运放的选型"><a href="#外部运放的选型" class="headerlink" title="外部运放的选型"></a>外部运放的选型</h3>
+    <figure class="figure-image">
+      <img src="https://s2.loli.net/2024/06/22/wvCU35sbJzLKrEV.png" alt="外部运放参数" loading="lazy" />
+      <figcaption>外部运放参数</figcaption>
+    </figure>
+  
+
+<p>选择运放的时候应当参考上述图片中提到的参数，这里仅仅提一下其中最重要的两个参数：</p>
+<ul>
+<li><p><strong>slew Rate</strong><br>压摆率，指的是输出信号在高低变化时，电压的最大变化速率，通常以$V&#x2F;\mu s$表示。如果压摆率跟不上实际电压变换速率，就会出现一定程度的失真。在具体计算时可以参考如下公式：</p>
+<p>$$ Slew Rate \ge 2 * \pi * f * V_p$$</p>
+<p>其中$f$为最高信号频率，$V_p$为最大峰值电压。</p>
+</li>
+<li><p><strong>gain bandwidth (GBW)</strong><br>增益带宽积，通常以kHZ或者MHz为单位。由于这里选择将运放作为电压跟随器，所以只要 <code>GBW</code> 能大于最终的输出频率即可。不过文章推荐至少高出两倍最好。</p>
+</li>
+</ul>
+<p>不过最终的DAC输出速率并不完全取决于外接运放，还与STM32芯片本身的输出性能息息相关，建议参考前文中提到的性能表格。</p>
+<h3 id="硬件电路的实践"><a href="#硬件电路的实践" class="headerlink" title="硬件电路的实践"></a>硬件电路的实践</h3>
+    <figure class="figure-image">
+      <img src="https://s2.loli.net/2024/06/22/4iwIJQc82g51rym.png" alt="硬件电路实例" loading="lazy" />
+      <figcaption>硬件电路实例</figcaption>
+    </figure>
+  
+
+<p>文章的最后，提供了一套实际的参考方案。</p>
+<p>其中选用的运放 <code>LMH6645</code> 具体性能参数如下，可供参考。</p>
+<ul>
+<li>slew rate: 22 V&#x2F;μs</li>
+<li>gain band width: 55 MHz</li>
+<li>open loop gain: 87 dB</li>
+<li>supply voltage range: 2.5 to 12 V</li>
+<li>input common mode voltage 0.3 V beyond rails</li>
+<li>output voltage swing 20 mV from rails</li>
+<li>stable from gain +1</li>
+</ul>
+<p>出现在反馈回路上的电容C1用于避免电压过冲，其他部分均与先前理论分析中的外接电路保持一致。</p>
+<p>最终测试证明当输出5MSPS、3Vpp的正弦波时无明显失真，不过阶梯效应仍有点影响波形美观，可以考虑低通滤除。</p>
+
+    <figure class="figure-image">
+      <img src="https://s2.loli.net/2024/06/22/DIgvFmTcNVnl1yp.png" alt="测试输出结果" loading="lazy" />
+      <figcaption>测试输出结果</figcaption>
+    </figure>
+  
+
+<p>文章中还有相当多的小细节笔者并未提到，推荐自行阅读原文😀</p>
+<p>另外这篇文章写完之后笔者也在尝试复现，等到复现结果完成之后，大概还会回来继续补充本文…</p>
 
       </section>
 
@@ -159,6 +257,7 @@
       
         <nav class="article-nav">
           
+          
             <div class="article-nav-item layout-padding">
   <article class="card-container article-nav-card content-padding--primary soft-size--large soft-style--box">
     
@@ -170,11 +269,10 @@
           <h2 class="card-text--title text-ellipsis">ADF435x调试笔记</h2>
         </a>
       
-      <div class="card-text--row">Newer</div>
+      <div class="card-text--row">Older</div>
     </div>
   </article>
 </div>
-          
           
         </nav>
       
@@ -229,6 +327,18 @@
 </section>
 
       
+<section class="widget-toc widget-item layout-margin content-padding--primary soft-size--large soft-style--box">
+  <div class="widget-title">
+    <svg class="icon icon-toc" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <path d="M134.50666666 767.46666668H460.8c27.73333333 0 50.24000001 22.50666668 50.24000001 50.23999999v50.13333333c0 27.73333333-22.50666668 50.24000001-50.24000001 50.24000001H134.50666666c-27.73333333 0-50.24000001-22.50666668-50.23999999-50.24000001v-50.13333333c0.10666668-27.73333333 22.50666668-50.24000001 50.24000001-50.24000001zM84.37333332 541.65333333h326.18666669c27.73333333 0 50.24000001 22.39999999 50.23999999 50.13333334v50.24000001c0 27.73333333-22.50666668 50.24000001-50.24000002 50.23999999H84.37333332c-27.73333333 0-50.24000001-22.50666668-50.23999999-50.23999999v-50.24000001c0-27.73333333 22.50666668-50.13333334 50.24000001-50.13333334zM134.50666666 315.83999999H460.8c27.73333333 0 50.24000001 22.50666668 50.24000001 50.24000001v50.24000001c0 27.73333333-22.50666668 50.13333334-50.24000001 50.13333333H134.50666666c-27.73333333 0-50.24000001-22.39999999-50.23999999-50.13333333v-50.24000001c0.10666668-27.84000001 22.50666668-50.24000001 50.24000001-50.23999999zM209.81333332 89.91999999h326.18666671c27.73333333 0 50.24000001 22.39999999 50.23999997 50.13333335v50.23999999c0 27.73333333-22.50666668 50.24000001-50.24000001 50.24000001H209.81333332c-27.73333333 0-50.24000001-22.50666668-50.23999999-50.24000001v-50.24000001c0-27.73333333 22.50666668-50.13333334 50.24000001-50.13333333zM692.05333333 623.36l274.66666669 176.00000002c23.36000001 14.93333333 30.08 45.97333334 15.14666666 69.33333332L954.77333334 910.93333333c-14.93333333 23.25333334-45.97333334 30.08-69.33333335 15.14666667l-274.66666666-176c-23.36000001-14.93333333-30.08-45.97333334-15.14666667-69.33333333l27.09333334-42.24000001c14.93333333-23.36000001 46.08000001-30.08 69.33333333-15.14666666z" fill="currentColor"></path>
+</svg>
+    <span>TOC</span>
+  </div>
+  <div class="widget-body">
+    <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BC%95%E5%85%A5"><span class="toc-number">1.</span> <span class="toc-text">引入</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%86%E6%9E%90"><span class="toc-number">2.</span> <span class="toc-text">分析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#DAC%E7%AD%89%E6%95%88%E7%94%B5%E8%B7%AF"><span class="toc-number">2.1.</span> <span class="toc-text">DAC等效电路</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A4%96%E9%83%A8%E8%BF%90%E6%94%BE%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="toc-number">2.2.</span> <span class="toc-text">外部运放的实现</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#DMA%E5%8F%8C%E9%87%8D%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%BC%8F"><span class="toc-number">2.3.</span> <span class="toc-text">DMA双重数据模式</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9E%E8%B7%B5"><span class="toc-number">3.</span> <span class="toc-text">实践</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A4%96%E9%83%A8%E8%BF%90%E6%94%BE%E7%9A%84%E9%80%89%E5%9E%8B"><span class="toc-number">3.1.</span> <span class="toc-text">外部运放的选型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A1%AC%E4%BB%B6%E7%94%B5%E8%B7%AF%E7%9A%84%E5%AE%9E%E8%B7%B5"><span class="toc-number">3.2.</span> <span class="toc-text">硬件电路的实践</span></a></li></ol></li></ol>
+  </div>
+</section>
+
 
       
 
