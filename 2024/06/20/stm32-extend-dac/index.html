@@ -137,7 +137,7 @@
       
       
       <section class="article-entry markdown-body layout-margin content-padding--large soft-size--large soft-style--box">
-        <h1 id="⚙️STM32-DAC-性能拓展"><a href="#⚙️STM32-DAC-性能拓展" class="headerlink" title="⚙️STM32 DAC 性能拓展"></a>⚙️STM32 DAC 性能拓展</h1><h2 id="引入"><a href="#引入" class="headerlink" title="引入"></a>引入</h2><p>最近研究STM32G4系列的时候，在手册里看到了如下内容。</p>
+        <h1 id="⚙️STM32-DAC-性能拓展"><a href="#⚙️STM32-DAC-性能拓展" class="headerlink" title="⚙️STM32 DAC 性能拓展"></a>⚙️STM32 DAC 性能拓展</h1><h2 id="引入"><a href="#引入" class="headerlink" title="引入"></a>引入</h2><h4 id="定义表格"><a href="#定义表格" class="headerlink" title="定义表格"></a>定义表格</h4><p>最近研究STM32G4系列的时候，在手册里看到了如下内容。</p>
 
     <figure class="figure-image">
       <img src="https://s2.loli.net/2024/06/22/rxEXiL8A6k4Wdaq.png" alt="G431的DAC采样率" loading="lazy" />
@@ -236,8 +236,23 @@
     </figure>
   
 
-<p>文章中还有相当多的小细节笔者并未提到，推荐自行阅读原文😀</p>
-<p>另外这篇文章写完之后笔者也在尝试复现，等到复现结果完成之后，大概还会回来继续补充本文…</p>
+<h2 id="复现"><a href="#复现" class="headerlink" title="复现"></a>复现</h2><p>笔者在经过复现验证发现，确实有一定的<strong>提高</strong>效果，但与理论数据还是有些差距。</p>
+<p>首先是复现条件：</p>
+<ol>
+<li>主控芯片： <code>STM32G431CBU6</code></li>
+<li>运放： <code>AD8031</code></li>
+</ol>
+<p>在测试过程中，将正弦波输出频率从小到大逐次增加，直到 <strong>200KHz</strong> 左右仍能保持良好波形，再高就会出现波形失真和频率不稳定，甚至直接停止输出。以下是本次测试最高频率的结果：</p>
+
+    <figure class="figure-image">
+      <img src="https://s2.loli.net/2024/06/30/aJvXHWrufONbi4T.png" alt="输出1MHz" loading="lazy" />
+      <figcaption>输出1MHz</figcaption>
+    </figure>
+  
+
+<p>确实登上了 <strong>1MHz</strong> 的大关，笔者本人对此结果还算满意，本篇博客至此可以告一段落了。</p>
+<p>需要注意的是，初次测量不要忘记放大器的拓扑结构是反相放大，因此好像会出现抬压一样的效果。其实这是正常现象，所谓的抬压其实是波形被倒置过来了，输出后级采用交流耦合即可。</p>
+<p><strong>原文中还有相当多的小细节笔者并未提到，推荐自行阅读原文</strong>😀</p>
 
       </section>
 
@@ -335,7 +350,7 @@
     <span>TOC</span>
   </div>
   <div class="widget-body">
-    <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BC%95%E5%85%A5"><span class="toc-number">1.</span> <span class="toc-text">引入</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%86%E6%9E%90"><span class="toc-number">2.</span> <span class="toc-text">分析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#DAC%E7%AD%89%E6%95%88%E7%94%B5%E8%B7%AF"><span class="toc-number">2.1.</span> <span class="toc-text">DAC等效电路</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A4%96%E9%83%A8%E8%BF%90%E6%94%BE%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="toc-number">2.2.</span> <span class="toc-text">外部运放的实现</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#DMA%E5%8F%8C%E9%87%8D%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%BC%8F"><span class="toc-number">2.3.</span> <span class="toc-text">DMA双重数据模式</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9E%E8%B7%B5"><span class="toc-number">3.</span> <span class="toc-text">实践</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A4%96%E9%83%A8%E8%BF%90%E6%94%BE%E7%9A%84%E9%80%89%E5%9E%8B"><span class="toc-number">3.1.</span> <span class="toc-text">外部运放的选型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A1%AC%E4%BB%B6%E7%94%B5%E8%B7%AF%E7%9A%84%E5%AE%9E%E8%B7%B5"><span class="toc-number">3.2.</span> <span class="toc-text">硬件电路的实践</span></a></li></ol></li></ol>
+    <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BC%95%E5%85%A5"><span class="toc-number">1.</span> <span class="toc-text">引入</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%86%E6%9E%90"><span class="toc-number">2.</span> <span class="toc-text">分析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#DAC%E7%AD%89%E6%95%88%E7%94%B5%E8%B7%AF"><span class="toc-number">2.1.</span> <span class="toc-text">DAC等效电路</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A4%96%E9%83%A8%E8%BF%90%E6%94%BE%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="toc-number">2.2.</span> <span class="toc-text">外部运放的实现</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#DMA%E5%8F%8C%E9%87%8D%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%BC%8F"><span class="toc-number">2.3.</span> <span class="toc-text">DMA双重数据模式</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9E%E8%B7%B5"><span class="toc-number">3.</span> <span class="toc-text">实践</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A4%96%E9%83%A8%E8%BF%90%E6%94%BE%E7%9A%84%E9%80%89%E5%9E%8B"><span class="toc-number">3.1.</span> <span class="toc-text">外部运放的选型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A1%AC%E4%BB%B6%E7%94%B5%E8%B7%AF%E7%9A%84%E5%AE%9E%E8%B7%B5"><span class="toc-number">3.2.</span> <span class="toc-text">硬件电路的实践</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A4%8D%E7%8E%B0"><span class="toc-number">4.</span> <span class="toc-text">复现</span></a></li></ol>
   </div>
 </section>
 
