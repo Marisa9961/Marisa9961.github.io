@@ -6,8 +6,9 @@
     --content-small-padding: 20px 19px 23px;
     --font-large-size: 46px;
     --font-stress-size: 22px;
-    --font-common-size: 16px;
-    --font-base-size: 14px;
+    --font-common-size: 18px;
+    --font-base-size: 16px;
+    --font-code-size: 14px;
     --font-base-lh: 1.8;
     --banner-height: 460px;
     --content-large-padding: 40px 38px 46px;
@@ -187,7 +188,7 @@ video {
 }
 html {
   box-sizing: border-box;
-  font-family: 'Open Sans', sans-serif;
+  font-family: 'LXGW WenKai Screen';
   font-size: var(--font-base-size);
   line-height: var(--font-base-lh);
   -ms-text-size-adjust: 100%;
@@ -934,6 +935,7 @@ html.show-mobile-nav .navbar-list {
 .markdown-body pre,
 .markdown-body code {
   font-family: 'Fira Code', monospace;
+  font-size: var(--font-code-size);
 }
 .markdown-body code {
   padding: 0 0.3em;
