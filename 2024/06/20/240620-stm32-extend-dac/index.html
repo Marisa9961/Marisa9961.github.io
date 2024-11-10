@@ -22,7 +22,7 @@
 
   
 
-  <title>ADF435x锁相环驱动调试 | Marisa9961</title>
+  <title>释放 STM32 DAC 性能上限 | Marisa9961</title>
 
   
 
@@ -49,7 +49,7 @@
 
 <header class="header-container post">
   
-    <div class="post-image" style="background-image: url(https://s2.loli.net/2024/06/10/3uyL5P6HohiAkUg.jpg)"></div>
+    <div class="post-image" style="background-image: url(https://s2.loli.net/2024/06/10/iMcQbEFkVRUDqpa.jpg)"></div>
   
 
   <!-- navbar -->
@@ -102,20 +102,22 @@
     <div class="header-content">
       <div class="post-text layout-block">
         <div class="layout-margin">
-          <h1 class="title-wrap">ADF435x锁相环驱动调试</h1>
+          <h1 class="title-wrap">释放 STM32 DAC 性能上限</h1>
           <h2 class="title-sub-wrap">
             <strong>Marisa9961</strong>
             <span>发布于</span>
-            <time  class="article-date" datetime="2024-05-12T15:46:50.000Z" itemprop="datePublished">2024-05-12</time>
+            <time  class="article-date" datetime="2024-06-20T03:49:08.000Z" itemprop="datePublished">2024-06-20</time>
           </h2>
           <ul class="wrap-list dark">
   
-    <li><a href="/categories/IC/">📒 IC</a></li>
+    <li><a href="/categories/Embedded/">📒 Embedded</a></li>
   
 </ul>
           <ul class="wrap-list dark">
   
-    <li><a href="/tags/PLL/">🏷️ PLL</a></li>
+    <li><a href="/tags/STM32/">🏷️ STM32</a></li>
+  
+    <li><a href="/tags/DAC/">🏷️ DAC</a></li>
   
 </ul>
         </div>
@@ -139,34 +141,123 @@
       
       
       <section class="article-entry markdown-body layout-margin content-padding--large soft-size--large soft-style--box">
-        <h1 id="✍🏻ADF435x调试笔记"><a href="#✍🏻ADF435x调试笔记" class="headerlink" title="✍🏻ADF435x调试笔记"></a>✍🏻ADF435x调试笔记</h1><h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>最近在做ADF4351锁相环模块，调试过程中遇到了很多问题，因为锁相环本身就结构复杂，所以程序写的比较花费精力。然而，在多方查找参考资料的过程中，注意到了ADI官网提供了调试软件的免费下载。</p>
-<p><a target="_blank" rel="noopener" href="https://www.analog.com/en/resources/evaluation-hardware-and-software/evaluation-boards-kits/eval-adf4351.html">ADF4351 Evaluation Software</a></p>
+        <h1 id="⚙️如何使用DAC-1MSPS-输出1MHz波形？"><a href="#⚙️如何使用DAC-1MSPS-输出1MHz波形？" class="headerlink" title="⚙️如何使用DAC(1MSPS)输出1MHz波形？"></a>⚙️如何使用DAC(1MSPS)输出1MHz波形？</h1><h2 id="引入"><a href="#引入" class="headerlink" title="引入"></a>引入</h2><p>最近研究STM32G4系列的时候，在手册里看到了如下内容。</p>
 
     <figure class="figure-image">
-      <img src="https://s2.loli.net/2024/06/10/a6mp3g7nybRzKjc.png" alt="初始界面" loading="lazy" />
-      <figcaption>初始界面</figcaption>
+      <img src="https://s2.loli.net/2024/06/22/rxEXiL8A6k4Wdaq.png" alt="G431的DAC采样率" loading="lazy" />
+      <figcaption>G431的DAC采样率</figcaption>
     </figure>
   
 
-<p>这是ADI官方提供的芯片评估板配套使用软件，可以拿来很方便的计算寄存器参数。可以利用这里生成的参数直接写入MCU并发送给ADF4351。</p>
-<h2 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h2><p>首先在 <strong>Select Devices and Connection</strong> 选择芯片型号，随后进入 <strong>Main Control</strong> 进行参数的设置。</p>
-<p>对于最基础的倍频功能，只需要修改如下几个圈起来的地方即可。</p>
-<p>例如板载晶振为24M，且输出要求240M：</p>
+<p>图中提到的 <code>unbuffered channels</code> 居然能实现 <strong>15MSPS</strong> 的DAC采样率。也就是说如果以15个点描绘周期，STM32的内嵌DAC就能突破 <strong>1MHz</strong> 的大关。</p>
+<p>不过这样其实没什么实际意义，15个点对于绝大多数波形而言都是不够用的。而且仔细一看，这里还有个 <code>internal</code> 的限定，也就是说，只有DAC内部通道才能用这么高的采样率。</p>
+<p>虽然白高兴了一场，但在搜集资料的途中，倒还真让我找到了一种提升DAC输出性能的办法：通过禁用内部 <code>buffer</code> ，并在引脚上外接高性能运放，可以完全解放DAC的性能上限。</p>
+<p>具体可以参考下面这篇来自ST官方的文章：</p>
+<p><a target="_blank" rel="noopener" href="https://www.st.com/resource/en/application_note/dm00129215-extending-the-dac-performance-of-stm32-microcontrollers-stmicroelectronics.pdf">Extending the DAC performance of STM32 microcontrollers</a></p>
+<p>以及这张表中的数据：</p>
 
     <figure class="figure-image">
-      <img src="https://s2.loli.net/2024/06/10/anMCm1BUEjPkIZH.png" alt="RF设置" loading="lazy" />
-      <figcaption>RF设置</figcaption>
+      <img src="https://s2.loli.net/2024/06/22/g7FJTEZQqoGa5RM.png" alt="ST各系列芯片DAC极限采样率" loading="lazy" />
+      <figcaption>ST各系列芯片DAC极限采样率</figcaption>
     </figure>
   
 
-<p>这里的多数选项都不需要额外注意，芯片手册里写的很详细。需要注意的是总公式里的 <strong>Div</strong> 并不都在 <strong>Reg0</strong> 和 <strong>Reg1</strong> 当中配置，而是在 <strong>Reg4</strong> 当中出现。</p>
-<p>所以其实针对初始状态进行一次设置之后，只需要修改 <strong>Reg0</strong> <strong>Reg1</strong> <strong>Reg4</strong> 的内容即可实现步进倍频的功能。</p>
-<p>其余的配置参数可以任意尝试，来帮助理解对应关系。结合手册和软件就能快速掌握芯片的基本用法。</p>
-<p>以下是我的工程中的主体代码，仅供参考。方法实现过于简单，就不一一展示了。</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><code class="hljs Cpp"><span class="hljs-keyword">namespace</span> adf4351 &#123;<br>    <span class="hljs-keyword">constexpr</span> <span class="hljs-keyword">auto</span> REG_SIZE&#123;<span class="hljs-number">6</span>&#125;;<br>    <span class="hljs-keyword">constexpr</span> <span class="hljs-type">float</span> MAX_OUT_FREQ&#123;<span class="hljs-number">4400</span>&#125;;<br>    <span class="hljs-keyword">constexpr</span> <span class="hljs-type">float</span> MIN_OUT_FREQ&#123;<span class="hljs-number">35</span>&#125;;<br><br>    <span class="hljs-keyword">class</span> <span class="hljs-title class_">Pll</span> &#123;<br>       <span class="hljs-keyword">public</span>:<br>        <span class="hljs-built_in">Pll</span>();<br>        ~<span class="hljs-built_in">Pll</span>() = <span class="hljs-keyword">default</span>;<br><br>        <span class="hljs-function"><span class="hljs-type">bool</span> <span class="hljs-title">setInput</span><span class="hljs-params">(<span class="hljs-type">const</span> <span class="hljs-type">float</span>&amp; freq)</span></span>;<br><br>        <span class="hljs-function"><span class="hljs-type">bool</span> <span class="hljs-title">setFreq</span><span class="hljs-params">(<span class="hljs-type">const</span> <span class="hljs-type">float</span>&amp; freq)</span></span>;<br>        <span class="hljs-function"><span class="hljs-type">bool</span> <span class="hljs-title">setPhase</span><span class="hljs-params">(<span class="hljs-type">const</span> <span class="hljs-type">uint16_t</span>&amp; phase)</span></span>;<br>        [[nodiscard]] <span class="hljs-function"><span class="hljs-type">float</span> <span class="hljs-title">getFreq</span><span class="hljs-params">()</span> <span class="hljs-type">const</span></span>;<br>        [[nodiscard]] <span class="hljs-function"><span class="hljs-type">uint16_t</span> <span class="hljs-title">getPhase</span><span class="hljs-params">()</span> <span class="hljs-type">const</span></span>;<br><br>       <span class="hljs-keyword">private</span>:<br>        <span class="hljs-type">float</span> input_freq_&#123;<span class="hljs-number">24</span>&#125;;<br>        <span class="hljs-type">float</span> output_freq_&#123;<span class="hljs-number">240</span>&#125;;<br>        <span class="hljs-type">uint16_t</span> output_phase_&#123;<span class="hljs-number">0</span>&#125;;<br>        std::array&lt;<span class="hljs-type">uint32_t</span>, REG_SIZE&gt; reg;<br>        <br>        <span class="hljs-comment">// ...</span><br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<h2 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h2><h3 id="DAC等效电路"><a href="#DAC等效电路" class="headerlink" title="DAC等效电路"></a>DAC等效电路</h3>
+    <figure class="figure-image">
+      <img src="https://s2.loli.net/2024/06/22/5qsju1DEHFIoteT.png" alt="内部DAC等效模型" loading="lazy" />
+      <figcaption>内部DAC等效模型</figcaption>
+    </figure>
+  
 
-<h2 id="待解决的问题"><a href="#待解决的问题" class="headerlink" title="待解决的问题"></a>待解决的问题</h2><p>上图中提到的相位调节 <strong>Phase Adjust</strong> 一直不太理想，翻遍了ADI官方论坛也没有找到相关的问答。本身该芯片的应用场景就并不倾向于高性能的相位锁定，所以感觉没有必要再深究下去。</p>
-<p>但是也有可能是本人对于手册的理解过于肤浅，总之程序完成基础的倍频功能后就没再继续了。</p>
+<p>首先，我们先来看看STM32的DAC等效模型。<br>在芯片内部的电路中，DAC的输出端结构实际上是一个<strong>反相跟随器</strong>。</p>
+<ul>
+<li><p>当选择 <strong>Output Buffer ON (输出缓冲开启)</strong><br>S1，S2闭合，那么电流会经过内部运放的反相跟随输出，此时的放大增益为 $A_v &#x3D; -1$<br>当选择输出缓冲的时，输出频率的速度就取决于内部运放的性能，也就是手册中标称的$1MHz$</p>
+</li>
+<li><p>当选择 <strong>Output Buffer OFF (输出缓冲关闭)</strong><br>S1，S2断开，电流直接经过 $R_a$ 和 $R_b$ 输出到外部引脚。<br>若是不使用输出缓冲，那么DAC的输出端就是纯阻性。而外接的负载如果具有容性，那么就会构成RC回路，造成输出频率的进一步下降。</p>
+</li>
+</ul>
+<p>关于输出缓冲关闭的情况下，以文中提到的以STM32F407为例，在最大阻值为$15k\Omega$，容性负载$10pF$的情况下，求得DAC的 <code>settling time</code> 仅有$1.8\mu s$左右，即$555kHZ$</p>
+<p>这让本就不高的DAC输出速率雪上加霜😖</p>
+<h3 id="外部运放的实现"><a href="#外部运放的实现" class="headerlink" title="外部运放的实现"></a>外部运放的实现</h3>
+    <figure class="figure-image">
+      <img src="https://s2.loli.net/2024/06/22/hm62fsxbzkGYDwR.png" alt="外部运放设置" loading="lazy" />
+      <figcaption>外部运放设置</figcaption>
+    </figure>
+  
+
+<p>前面提到了外部容性对于STM32的DAC输出影响，若我们在引脚上额外连接一个运放，那么就能忽视 <code>DACOUT capacitance</code>，也就是DAC输出的容性负载，以及其带来的负面影响。</p>
+<p>其次如果这个外接运放的<strong>性能足够高</strong>，那么就足以支持更高采样率的DAC信号输出。不过这里的反馈电阻$R_1$需要与内部的$R_{DAC}$相等，这样才能得到正确的增益大小。</p>
+<h3 id="DMA双重数据模式"><a href="#DMA双重数据模式" class="headerlink" title="DMA双重数据模式"></a>DMA双重数据模式</h3>
+    <figure class="figure-image">
+      <img src="https://s2.loli.net/2024/06/22/QxDoIEfZLvCzUt9.png" alt="double data mode" loading="lazy" />
+      <figcaption>double data mode</figcaption>
+    </figure>
+  
+
+<p>除此之外，这里还有个需要额外注意的小特性。部分STM32芯片支持所谓的 <code>Double Data Mode</code> ，例如G4系列。这个模式允许每次DMA传输两组数据，将两组数据分别存储在前后16bit上，共同组成32bit的数据，一次性传输，这样就能提升DMA的带宽利用率。</p>
+<p>不过根据文章提供的DAC极限采样率表所展示的，实际带来的DAC输出频率提升并不是很多，各位读者手中的芯片如果不支持这个功能也无妨，表中只有 <code>G4 Series</code> 做了这项测试，提升也很有限。</p>
+<h2 id="实践"><a href="#实践" class="headerlink" title="实践"></a>实践</h2><h3 id="外部运放的选型"><a href="#外部运放的选型" class="headerlink" title="外部运放的选型"></a>外部运放的选型</h3>
+    <figure class="figure-image">
+      <img src="https://s2.loli.net/2024/06/22/wvCU35sbJzLKrEV.png" alt="外部运放参数" loading="lazy" />
+      <figcaption>外部运放参数</figcaption>
+    </figure>
+  
+
+<p>选择运放的时候应当参考上述图片中提到的参数，这里仅仅提一下其中最重要的两个参数：</p>
+<ul>
+<li><p><strong>slew Rate</strong><br>压摆率，指的是输出信号在高低变化时，电压的最大变化速率，通常以$V&#x2F;\mu s$表示。如果压摆率跟不上实际电压变换速率，就会出现一定程度的失真。在具体计算时可以参考如下公式：</p>
+<p>$$ Slew Rate \ge 2 * \pi * f * V_p$$</p>
+<p>其中$f$为最高信号频率，$V_p$为最大峰值电压。</p>
+</li>
+<li><p><strong>gain bandwidth (GBW)</strong><br>增益带宽积，通常以kHZ或者MHz为单位。由于这里选择将运放作为电压跟随器，所以只要 <strong>GBW</strong> 能大于最终的输出频率即可。不过官方文章推荐至少高出两倍最好。</p>
+</li>
+</ul>
+<p>不过最终的DAC输出速率并不完全取决于外接运放，还与STM32芯片本身的输出性能息息相关，建议参考前文中提到的性能表格。</p>
+<h3 id="硬件电路的实践"><a href="#硬件电路的实践" class="headerlink" title="硬件电路的实践"></a>硬件电路的实践</h3>
+    <figure class="figure-image">
+      <img src="https://s2.loli.net/2024/06/22/4iwIJQc82g51rym.png" alt="硬件电路实例" loading="lazy" />
+      <figcaption>硬件电路实例</figcaption>
+    </figure>
+  
+
+<p>官方文章的最后，提供了一套实际的参考方案。</p>
+<p>案例中选用的运放 <code>LMH6645</code> 具体性能参数如下，可供参考。</p>
+<ul>
+<li>slew rate: 22 V&#x2F;μs</li>
+<li>gain band width: 55 MHz</li>
+<li>open loop gain: 87 dB</li>
+<li>supply voltage range: 2.5 to 12 V</li>
+<li>input common mode voltage 0.3 V beyond rails</li>
+<li>output voltage swing 20 mV from rails</li>
+<li>stable from gain +1</li>
+</ul>
+<p>其中出现在反馈回路上的电容C1是用于避免电压过冲，而其他部分均与先前理论分析中的外接电路保持一致，不再一一解释。</p>
+<p>最终测试证明当输出5MSPS、3Vpp的正弦波时无明显失真，不过阶梯效应仍有点影响波形美观，可以考虑低通滤除。</p>
+
+    <figure class="figure-image">
+      <img src="https://s2.loli.net/2024/06/22/DIgvFmTcNVnl1yp.png" alt="测试输出结果" loading="lazy" />
+      <figcaption>测试输出结果</figcaption>
+    </figure>
+  
+
+<h2 id="复现"><a href="#复现" class="headerlink" title="复现"></a>复现</h2><p>笔者在经过复现验证发现，确实有一定的<strong>提高</strong>效果，但与理论数据还是有些差距。</p>
+<p>首先是复现条件：</p>
+<ol>
+<li>主控芯片： <code>STM32G431CBU6</code></li>
+<li>运放： <code>AD8031</code></li>
+</ol>
+<p>在测试过程中，将正弦波输出频率从小到大逐次增加，直到 <strong>200KHz</strong> 左右仍能保持良好波形，再高就会出现波形失真和频率不稳定，甚至直接停止输出。由此可见这种做法确实有一定的提高效果，但受限于各方面因素，这样的提升并不是那么划算。</p>
+<p>以下是本次测试最高频率的结果：</p>
+
+    <figure class="figure-image">
+      <img src="https://s2.loli.net/2024/06/30/aJvXHWrufONbi4T.png" alt="输出1MHz" loading="lazy" />
+      <figcaption>输出1MHz</figcaption>
+    </figure>
+  
+
+<p>确实登上了 <strong>1MHz</strong> 的大关，笔者本人对此结果还算满意，本篇博客至此可以告一段落了。</p>
+<p>需要注意的是，初次测量不要忘记放大器的拓扑结构是反相放大，因此好像会出现抬压一样的效果。其实这是正常现象，所谓的抬压其实是波形被倒置过来了，输出后级采用交流耦合即可。</p>
+<p><strong>原文中还有相当多的小细节笔者并未提到，推荐自行阅读原文</strong>😀</p>
 
       </section>
 
@@ -191,12 +282,12 @@
             <div class="article-nav-item layout-padding">
   <article class="card-container article-nav-card content-padding--primary soft-size--large soft-style--box">
     
-      <div class="card-cover" background-image-lazy data-img="https://s2.loli.net/2024/06/10/iMcQbEFkVRUDqpa.jpg"></div>
+      <div class="card-cover" background-image-lazy data-img="https://s2.loli.net/2024/07/15/Amc7OUdDZxHfaIk.jpg"></div>
     
     <div class="card-text">
       
-        <a href="/2024/06/20/stm32-extend-dac/" itemprop="url">
-          <h2 class="card-text--title text-ellipsis">如何使用DAC(1MSPS)输出1MHz波形？</h2>
+        <a href="/2024/07/15/240715-stm32-spi-communicate/" itemprop="url">
+          <h2 class="card-text--title text-ellipsis">UART通信：IDLE+DMA的优化技巧</h2>
         </a>
       
       <div class="card-text--row">Newer</div>
@@ -208,12 +299,12 @@
             <div class="article-nav-item layout-padding">
   <article class="card-container article-nav-card content-padding--primary soft-size--large soft-style--box">
     
-      <div class="card-cover" background-image-lazy data-img="https://s2.loli.net/2024/06/10/PnAgQcR6XS1UIVb.jpg"></div>
+      <div class="card-cover" background-image-lazy data-img="https://s2.loli.net/2024/06/10/3uyL5P6HohiAkUg.jpg"></div>
     
     <div class="card-text">
       
-        <a href="/2024/04/28/hello-world/" itemprop="url">
-          <h2 class="card-text--title text-ellipsis">你好，世界</h2>
+        <a href="/2024/05/12/240512-adf435x-introduce/" itemprop="url">
+          <h2 class="card-text--title text-ellipsis">ADF435x锁相环驱动调试</h2>
         </a>
       
       <div class="card-text--row">Older</div>
@@ -255,19 +346,19 @@
         <svg class="icon icon-article" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
   <path d="M240.51564747 647.74217627h196.07203239c16.59071043 0 30.16492806-13.57421762 30.16492805-30.16492806V165.10332731c0-33.18142087-30.16492806-60.32985613-60.32985612-60.32985611H245.04038668C225.43318342 104.7734712 210.35071939 119.85593522 210.35071939 139.46313845V617.57724821c0 16.59071043 13.57421762 30.16492806 30.16492808 30.16492806z m663.62841731-452.47392089v482.63884894c0 33.18142087-27.14843525 60.32985613-60.32985612 60.32985613H180.18579134c-33.18142087 0-60.32985613-27.14843525-60.32985612-60.32985613V195.26825538c-49.77213131 0-90.49478418 40.72265287-90.49478417 90.49478417v452.4739209c0 49.77213131 40.72265287 90.49478418 90.49478417 90.49478417h286.56681657c16.59071043 0 30.16492806 13.57421762 30.16492807 30.16492807s13.57421762 30.16492806 30.16492805 30.16492806h90.49478418c16.59071043 0 30.16492806-13.57421762 30.16492805-30.16492806s13.57421762-30.16492806 30.16492807-30.16492807h286.56681657c49.77213131 0 90.49478418-40.72265287 90.49478417-90.49478417V285.76303955c0-49.77213131-40.72265287-90.49478418-90.49478417-90.49478417zM587.41232014 647.74217627h191.54729318c19.60720323 0 34.68966726-15.08246403 34.68966729-34.68966727V134.93839925c0-16.59071043-13.57421762-30.16492806-30.16492808-30.16492805H617.57724821c-30.16492806 0-60.32985613 27.14843525-60.32985612 60.32985611v452.4739209c0 16.59071043 13.57421762 30.16492806 30.16492805 30.16492806z" fill="currentColor"></path>
 </svg>
-        <span>4</span>
+        <span>5</span>
       </div>
       <div class="count-box--item">
         <svg class="icon icon-categories" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
   <path d="M900.3614811 257.09082106h-339.81629553l-67.96326003-101.9448889c-19.41807444-29.12711113-48.54518557-43.69066667-82.52681443-43.69066667H123.6385189c-53.39970333 0-97.09036999 43.69066667-97.09037113 97.09036999v582.54222222c0 53.39970333 43.69066667 97.09036999 97.09037113 97.09037002h776.7229622c53.39970333 0 97.09036999-43.69066667 97.09037113-97.09037002V354.18119104c0-53.39970333-43.69066667-97.09036999-97.09037113-97.09036998z m-97.09036999 242.72592554H220.72888889c-24.27259221 0-48.54518557-24.27259221-48.54518556-48.54518556s24.27259221-48.54518557 48.54518556-48.54518444h582.54222222c24.27259221 0 48.54518557 24.27259221 48.54518556 48.54518444s-24.27259221 48.54518557-48.54518556 48.54518556z" fill="currentColor"></path>
 </svg>
-        3
+        4
       </div>
       <div class="count-box--item">
         <svg class="icon icon-tags" viewBox="0 0 1098 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
   <path d="M283.42180005 272q0-28.38857157-20.09142843-48.48000001t-48.47999998-20.09142842-48.48000002 20.09142842-20.09142846 48.48000001 20.09142846 48.48 48.48000002 20.09142843 48.47999998-20.09142843 20.09142843-48.48zM855.0332285 580.57142843q0 28.38857157-19.81714313 48.2057147l-263.03999997 263.58857157q-20.9142853 19.81714313-48.75428534 19.81714312-28.38857157 0-48.20571468-19.81714312l-383.04-383.58857157q-20.36571468-19.81714313-34.55999999-54.10285688t-14.19428534-62.6742853l0-222.85714313q0-27.84000002 20.36571469-48.20571469t48.2057147-20.36571466l222.85714313 0q28.38857157 0 62.6742853 14.19428529t54.65142842 34.55999999l383.04000001 382.49142843q19.81714313 20.9142853 19.81714314 48.75428532zM1060.74751475 580.57142843q0 28.38857157-19.81714313 48.2057147l-263.04 263.58857157q-20.9142853 19.81714313-48.75428531 19.81714312-19.26857155 0-31.61142843-7.47428531t-28.38857159-24.13714314l251.79428534-251.7942853q19.81714313-19.81714313 19.81714308-48.20571469 0-27.84000002-19.81714308-48.75428531l-383.04000001-382.49142845q-20.36571468-20.36571468-54.65142842-34.55999999t-62.67428532-14.19428534l120 0q28.38857157 0 62.67428532 14.19428534t54.65142842 34.55999999l383.03999998 382.49142845q19.81714313 20.9142853 19.81714314 48.75428531z" fill="currentColor"></path>
 </svg>
-        6
+        9
       </div>
     </div>
   </div>
@@ -282,7 +373,7 @@
     <span>TOC</span>
   </div>
   <div class="widget-body">
-    <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%97%AE%E9%A2%98"><span class="toc-number">1.</span> <span class="toc-text">问题</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%BB%E8%A6%81%E5%86%85%E5%AE%B9"><span class="toc-number">2.</span> <span class="toc-text">主要内容</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BE%85%E8%A7%A3%E5%86%B3%E7%9A%84%E9%97%AE%E9%A2%98"><span class="toc-number">3.</span> <span class="toc-text">待解决的问题</span></a></li></ol>
+    <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BC%95%E5%85%A5"><span class="toc-number">1.</span> <span class="toc-text">引入</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%86%E6%9E%90"><span class="toc-number">2.</span> <span class="toc-text">分析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#DAC%E7%AD%89%E6%95%88%E7%94%B5%E8%B7%AF"><span class="toc-number">2.1.</span> <span class="toc-text">DAC等效电路</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A4%96%E9%83%A8%E8%BF%90%E6%94%BE%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="toc-number">2.2.</span> <span class="toc-text">外部运放的实现</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#DMA%E5%8F%8C%E9%87%8D%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%BC%8F"><span class="toc-number">2.3.</span> <span class="toc-text">DMA双重数据模式</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9E%E8%B7%B5"><span class="toc-number">3.</span> <span class="toc-text">实践</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A4%96%E9%83%A8%E8%BF%90%E6%94%BE%E7%9A%84%E9%80%89%E5%9E%8B"><span class="toc-number">3.1.</span> <span class="toc-text">外部运放的选型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A1%AC%E4%BB%B6%E7%94%B5%E8%B7%AF%E7%9A%84%E5%AE%9E%E8%B7%B5"><span class="toc-number">3.2.</span> <span class="toc-text">硬件电路的实践</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A4%8D%E7%8E%B0"><span class="toc-number">4.</span> <span class="toc-text">复现</span></a></li></ol>
   </div>
 </section>
 
@@ -317,6 +408,12 @@
           </a>
         </li>
       
+        <li class="categorys-list-item">
+          <a href="/categories/C/">
+            C++ (1)
+          </a>
+        </li>
+      
     </ul>
   </div>
 </section>
@@ -330,7 +427,7 @@
   </div>
   <div class="widget-body">
     <div class="tags-cloud">
-      <a href="/tags/DAC/" style="font-size: 10px;" class="tags-cloud-0">DAC</a> <a href="/tags/Hexo/" style="font-size: 10px;" class="tags-cloud-0">Hexo</a> <a href="/tags/PLL/" style="font-size: 10px;" class="tags-cloud-0">PLL</a> <a href="/tags/SPI/" style="font-size: 10px;" class="tags-cloud-0">SPI</a> <a href="/tags/STM32/" style="font-size: 20px;" class="tags-cloud-10">STM32</a> <a href="/tags/UART/" style="font-size: 10px;" class="tags-cloud-0">UART</a>
+      <a href="/tags/Algorithm/" style="font-size: 10px;" class="tags-cloud-0">Algorithm</a> <a href="/tags/DAC/" style="font-size: 10px;" class="tags-cloud-0">DAC</a> <a href="/tags/Hexo/" style="font-size: 10px;" class="tags-cloud-0">Hexo</a> <a href="/tags/MSVC/" style="font-size: 10px;" class="tags-cloud-0">MSVC</a> <a href="/tags/PLL/" style="font-size: 10px;" class="tags-cloud-0">PLL</a> <a href="/tags/SPI/" style="font-size: 10px;" class="tags-cloud-0">SPI</a> <a href="/tags/STL/" style="font-size: 10px;" class="tags-cloud-0">STL</a> <a href="/tags/STM32/" style="font-size: 20px;" class="tags-cloud-10">STM32</a> <a href="/tags/UART/" style="font-size: 10px;" class="tags-cloud-0">UART</a>
     </div>
   </div>
 </section>
