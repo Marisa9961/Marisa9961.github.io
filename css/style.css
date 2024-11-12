@@ -188,7 +188,7 @@ video {
 }
 html {
   box-sizing: border-box;
-  font-family: 'LXGW WenKai Screen';
+  font-family: 'Open Sans', sans-serif;
   font-size: var(--font-base-size);
   line-height: var(--font-base-lh);
   -ms-text-size-adjust: 100%;
@@ -873,7 +873,7 @@ html.show-mobile-nav .navbar-list {
   border: none;
 }
 .markdown-body blockquote {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: 'Open Sans', sans-serif;
   font-size: 1em;
   color: var(--theme-text-low);
   border-left: 3px solid var(--theme-text-low);
