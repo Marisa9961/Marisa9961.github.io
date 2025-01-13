@@ -22,7 +22,7 @@
 
   
 
-  <title>UART通信：IDLE+DMA的优化技巧 | Marisa9961</title>
+  <title>锁相放大器：从理论到实践 | Marisa9961</title>
 
   
 
@@ -49,7 +49,7 @@
 
 <header class="header-container post">
   
-    <div class="post-image" style="background-image: url(https://s2.loli.net/2024/07/15/Amc7OUdDZxHfaIk.jpg)"></div>
+    <div class="post-image" style="background-image: url(https://s2.loli.net/2025/01/10/8AX7y3lnVh49KxJ.jpg)"></div>
   
 
   <!-- navbar -->
@@ -102,24 +102,20 @@
     <div class="header-content">
       <div class="post-text layout-block">
         <div class="layout-margin">
-          <h1 class="title-wrap">UART通信：IDLE+DMA的优化技巧</h1>
+          <h1 class="title-wrap">锁相放大器：从理论到实践</h1>
           <h2 class="title-sub-wrap">
             <strong>Marisa9961</strong>
             <span>发布于</span>
-            <time  class="article-date" datetime="2024-07-15T07:44:32.000Z" itemprop="datePublished">2024-07-15</time>
+            <time  class="article-date" datetime="2025-01-10T04:03:54.000Z" itemprop="datePublished">2025-01-10</time>
           </h2>
           <ul class="wrap-list dark">
   
-    <li><a href="/categories/Embedded/">📒 Embedded</a></li>
+    <li><a href="/categories/IC/">📒 IC</a></li>
   
 </ul>
           <ul class="wrap-list dark">
   
-    <li><a href="/tags/STM32/">🏷️ STM32</a></li>
-  
-    <li><a href="/tags/SPI/">🏷️ SPI</a></li>
-  
-    <li><a href="/tags/UART/">🏷️ UART</a></li>
+    <li><a href="/tags/Amplifier/">🏷️ Amplifier</a></li>
   
 </ul>
         </div>
@@ -143,63 +139,133 @@
       
       
       <section class="article-entry markdown-body layout-margin content-padding--large soft-size--large soft-style--box">
-        <h1 id="STM32串口通信IDLE"><a href="#STM32串口通信IDLE" class="headerlink" title="STM32串口通信IDLE"></a>STM32串口通信IDLE</h1><h2 id="引入"><a href="#引入" class="headerlink" title="引入"></a>引入</h2><p>最近在做UART与上位机通信的时候，注意到STM32的UART居然支持硬件IDLE。</p>
-<p>于是就尝试了一把 <code>IDLE+DMA</code> 的模式，使得设备可以自动在接收空闲时唤起中断，DMA直接搬运数据到内存，实现任意长度的命令或是数据都能自动完成接收和回调。</p>
-<h2 id="IDLE模式"><a href="#IDLE模式" class="headerlink" title="IDLE模式"></a>IDLE模式</h2><p>首先来讲讲什么是IDLE模式？</p>
-<p>所谓的IDLE就是not working or being used，翻译成中文就是闲置状态。当UART的Rx总线收到持续信息时，会在最后一帧数据结束后进行检查，当出现了至少一帧的闲置电平，就会唤醒相关的回调函数管理。也就实现了无论数据长度有多长，都会自动停止接收并进入中断处理，非常方便。</p>
-<p>网上某些过时的教程会告诉你，UART的IDLE模式要通过以下这样的语句开启：<br><code>__HAL_UART_ENABLE_IT(&amp;huart1, UART_IT_IDLE)</code></p>
-<p>其实HAL库目前已经将IDLE的相关功能封装成了正式函数，并且已经包含在下列库文件中。</p>
-<ul>
-<li>stm32g4xx_hal_uart_ex.c</li>
-<li>stm32g4xx_hal_uart_ex.h</li>
-</ul>
-<p>现在打开IDLE模式的正确姿势应该是：<br><code>HAL_UARTEx_ReceiveToIdle</code><br><code>HAL_UARTEx_ReceiveToIdle_IT</code><br><code>HAL_UARTEx_ReceiveToIdle_DMA</code></p>
-<p>这些函数会自动开启IDLE功能，并启用相关的中断。IDLE接收本身就很方便，但如果再加上DMA辅助搬运数据，就更能为CPU分担压力，节省计算资源。</p>
-<p>然而如果我们真的想写一个足够健壮且高效的串口处理程序，不用的时候就安静的待在一边，数据来了的时候就自动接收、自动搬运、自动停止、自动通知CPU处理。</p>
-<p><strong>那可能还真没那么好写</strong>，因为一旦牵扯到DMA，问题就会开始变得复杂。</p>
-<p>当一组数据被传递过来，而CPU还在运算其他优先级更高的任务，来不及处理这批数据。紧接着又来了一批数据把上一批数据全部覆盖掉，此时的CPU就浑然不知，只做了一批数据的回调处理就继续干别的去了，这样就导致了前一批数据丢失。</p>
-<h2 id="DMA中断模型"><a href="#DMA中断模型" class="headerlink" title="DMA中断模型"></a>DMA中断模型</h2><p>其实数据被反复覆盖的问题在HAL库设计之初就有被考虑到过，HAL库也给出了相应的解决方案：<br><code>HAL_UART_RxHalfCpltCallback</code><br><code>HAL_UART_RxCpltCallback</code></p>
-<p>现在我们考虑如下的情形：</p>
-<p>首先使能 <code>DMA</code> 的 <code>Circular</code> 模式，开启数据的循环接收。随后创建一个 <code>Buffer[20]</code> 用来接收数据，并用 <code>R</code> 和 <code>W</code> 来标记当前缓冲区内读指针和写指针。且当 <code>Buffer[20]</code> 被填写到一半或者填满时，就触发对应的回调函数 <code>HT</code> 和 <code>TC</code> ；每当本次数据接收完毕，<code>I</code> 就会被触发，也就是空闲中断回调。</p>
-<p>此时可以将所有的内存写入问题归纳为如下五种模型<a target="_blank" rel="noopener" href="https://github.com/MaJerle/stm32-usart-uart-dma-rx-tx">(图源)</a>：</p>
+        <h1 id="锁相放大器：从理论到实践"><a href="#锁相放大器：从理论到实践" class="headerlink" title="锁相放大器：从理论到实践"></a>锁相放大器：从理论到实践</h1><p>最近重新整理之前做过的电赛题目资料时，回忆起了这个有趣的话题。</p>
+<p>所谓<strong>锁相放大器</strong>，就是能够在一片噪声的干扰之中正确找到目标信号，并对其进行分离和增益的一种放大器。</p>
+<p>听起来相当魔幻对吧，实际上这样的电路实现起来也确实会困难重重，条件非常苛刻。但是锁相放大器依然还是有很丰富的理论研究价值，接下来就来进行分析。</p>
 
     <figure class="figure-image">
-      <img src="https://s2.loli.net/2024/07/23/O2lIsvEq5QtGdAJ.png" alt="DMA Circular" loading="lazy" />
-      <figcaption>DMA Circular</figcaption>
+      <img src="https://s2.loli.net/2025/01/10/EeWqYN8mVCcB2dS.jpg" alt="锁相放大器（图源 Wikipedia）" loading="lazy" />
+      <figcaption>锁相放大器（图源 Wikipedia）</figcaption>
     </figure>
   
 
+<h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>锁相放大器，英文全称<strong>Lock-in Amplifier</strong>，又称<strong>LIA</strong>。</p>
+
+    <figure class="figure-image">
+      <img src="https://s2.loli.net/2025/01/10/EkdXURqTJbDLHif.jpg" alt="锁相放大器原理图示（图源 Wikipedia）" loading="lazy" />
+      <figcaption>锁相放大器原理图示（图源 Wikipedia）</figcaption>
+    </figure>
+  
+
+<p>利用三角函数积化和差的思想，产生一路正弦信号与输入信号相乘，得到如下结果：</p>
+<div style="text-align: left">
+    $$
+    \begin{align}
+        &A_1\sin(\omega + \varphi) \cdot A_2\sin(\omega + \varphi) \\
+        &= \frac{1}{2} A_1 A_2 \{\cos[(\omega + \varphi) - (\omega + \varphi)] - \cos[(\omega + \varphi) + (\omega + \varphi)]\} \\
+        &= \frac{1}{2} A_1 A_2 \left[1 - \cos(2\omega + 2\varphi)\right]
+    \end{align}
+    $$
+</div>
+
+<p>只要保证正弦信号与目标信号<strong>同频同相</strong>，就能得出直流信号与两倍频的叠加波。</p>
+<p>然后利用低通滤波器滤除 $ -\frac{1}{2} A_1 A_2 \cos(2\omega + 2\varphi) $ ，得到直流分量 $ \frac{1}{2} A_1 A_2 $ 。</p>
+
+    <figure class="figure-image">
+      <img src="https://s2.loli.net/2025/01/10/whASIbiyHMEd4ac.png" alt="除法器电路（图源新概念模拟电路II P46）" loading="lazy" />
+      <figcaption>除法器电路（图源新概念模拟电路II P46）</figcaption>
+    </figure>
+  
+
+<p>对于该直流分量的处理就简单了，因为 $ A_1 $ 是已知信号，利用<strong>除法器</strong>即可将 $ A_2 $ 准确还原出来。<br>（提示：图中右上角的元件是乘法器，$ U_{I1} $ 和 $ U_{I2} $ 是输入电压，$ U_{O} $ 是除法结果，即利用乘法器和运放即可搭出除法器电路）</p>
+<p>或者直接将信号采样到单片机，再在内部进行除法运算，即可得到目标信号的采样数据。</p>
+<h2 id="相位差问题"><a href="#相位差问题" class="headerlink" title="相位差问题"></a>相位差问题</h2><p>有人可能会疑惑，这不是多此一举吗，既然我都知道目标信号的频率了，做这个还原有什么意义？</p>
+<p><strong>其实并不是这样。</strong></p>
+<p>首先我们先规定一下，需要还原出来的信号叫做“目标信号”，本地产生的信号的叫“参考信号”。</p>
+<p>在实际应用中，虽然不能得知目标信号具体的频率，但我们可以在一个范围内<strong>扫频</strong>来逼近目标频率。</p>
+<p>所谓扫频就是用频率步进变化的正弦波去逐次逼近结果，<strong>只有频率接近目标信号时</strong>，锁相放大器的结果才会达到绝对值最大，此时才能确定目标信号的频率。</p>
+<p>这里就可以将上面的公式推广到一般情况。</p>
+<div style="text-align: left">
+    $$
+    \begin{align}
+        &A_1\sin(\omega_1 + \varphi_1) \cdot A_2\sin(\omega_2 + \varphi_2) \\
+        &= \frac{1}{2} A_1 A_2 \{\cos[(\omega_1 + \varphi_1) - (\omega_2 + \varphi_2)] - \cos[(\omega_1 + \varphi_1) + (\omega_2 + \varphi_2)]\}
+    \end{align}
+    $$
+</div>
+
+<p>注意到，当 $ \omega_1 + \varphi_1 $ 与 $ \omega_2 + \varphi_2 $ 极为接近时，两者相减结果趋于0，使得 $ \cos $ 趋近于1，也就可以将 $ \frac{1}{2} A_1 A_2 \cos[(\omega_1 + \varphi_1) - (\omega_2 + \varphi_2)] $ 近似看作<strong>直流分量</strong>。</p>
+<p>不过这里只能说是“趋近”，而不能是达到完全相等。因为尽管待测信号源输出的是 $ 1khz $ 的正弦波，系统主动输出的也是 $ 1khz $ 的正弦波，由于时钟源的差异，两者几乎不可能做到完全同步。频率之差可能最开始很小，但随着时间推移，两者的相位最终会逐渐错开。况且常见时钟源受到电压、温度等因素影响都比较大，因此频率偏移是一个重要因素。</p>
+<p>这时就需要再次扫频校准，带来了麻烦，那么能不能有合理的办法解决呢？</p>
+<h2 id="双相位法"><a href="#双相位法" class="headerlink" title="双相位法"></a>双相位法</h2><p>在《<strong>新概念模拟电路</strong>》的相关章节中（<strong>第四册 P231 电荷放大器和锁定放大器</strong>）就提到了<strong>双相位法</strong>。</p>
+<p>双相位法在原先的基础上，增加了一路同频的参考信号来进行相乘，但该信号需要进行90°的相移。</p>
+<p>然后再将两路正交的正弦波分别相乘并滤波，得出 $ U_{O1} $ 和 $ U_{O2} $ 两路信号。</p>
+
+    <figure class="figure-image">
+      <img src="https://s2.loli.net/2025/01/10/H1qCIrwfL3b8nOD.png" alt="双相位法（图源新概念模拟电路IV P237）" loading="lazy" />
+      <figcaption>双相位法（图源新概念模拟电路IV P237）</figcaption>
+    </figure>
+  
+
+<p>系统最终会得到 $ U_{OA} $ 和 $ U_{OB} $ 两个分量，这两者虽然不是我们想要的的直流分量，但是将其平方和开根就可得到新的结果 $ U_O $ ：</p>
+<div style="text-align: left">
+    $$
+    \begin{align}
+        U_O &= \sqrt{U_{OA}^{2} + U_{OB}^{2}} \\
+        &= \frac{1}{2} A_{m1} A_{m2} \sqrt{\sin(\varphi_{1A} - \varphi_2)^2+\cos(\varphi_{1A} - \varphi_2)^2} \\
+        &= \frac{1}{2} A_{m1} A_{m2}
+    \end{align}
+    $$
+</div>
+
+<p>由此就可在相位关系未知的情况下得出直流分量 $ \frac{1}{2} A_{m1} A_{m2} $ 的值，这样就巧妙的解决了上述问题。</p>
+<p>（注意书上图片中最终结果有误，写成了 $ U_O &#x3D; \frac{1}{2} A_{m2} A_{m2} $，这里应该只是笔误）</p>
+<p>不仅如此，我们还可根据 $ U_{OA} $ 和 $ U_{OB} $ 的关系求出待测信号的相位差：</p>
+<p>$$ \tan(\varphi_{1A} - \varphi_2) &#x3D; \cfrac{\sin(\varphi_{1A} - \varphi_2)}{\cos(\varphi_{1A} - \varphi_2)} &#x3D; \cfrac{U_{OA}}{U_{OB}} $$</p>
+<p>接下来只需要利用 $ \arctan(\cfrac{U_{OA}}{U_{OB}}) $ 就可得到相位差。</p>
+<p><strong>实在是太神奇了。</strong></p>
+<p>双相位法真是一种非常巧妙的解决办法，我们不需要严格匹配目标的相位与实际的相位，就能准确求出直流分量，甚至还能顺带求出相位差。而原理也并不复杂，仅仅是掌握三角变换的特性就能轻松理解。</p>
+<p>这些三角变换并不困难，甚至只需要初高中的水平就能推导得出。但当其与电路设计结合在一起时，还是不得不佩服这些数学家的小把戏。</p>
+<p>上述内容针对锁定放大器的原理进行了改进，但是在实际应用的过程中还会遇到新的问题，接下来就来看看实践改进应该如何分析？</p>
+<h2 id="改进"><a href="#改进" class="headerlink" title="改进"></a>改进</h2><p>在实践部分，书中提到了移相时会遇到的问题。</p>
+<blockquote>
+<p>上述方法，理论分析头头是道，但实现起来很困难。其中最大的难点在于90°移相。我们知道，全通滤波器可以实现移相，但它的标准功能是，对不同频率实施不同的移相而要对任意给定的频率都能实现90°相移，且幅度不发生变化，在模拟电路中是很难做到的。</p>
+</blockquote>
+<p>书中以模拟电路的视角来考虑相位问题，确实不太容易实现移相。但如果从实际应用的角度，在一些要求没那么高的场合，完全可以考虑利用多通道DDS直接设置两路正交的正弦波来解决这个问题，因此这里可能并不是最困难的地方。</p>
+<p>但在另一方面，双相位法需要两路相同的乘法器电路来实现，而乘法器本身就是<strong>价格昂贵</strong>且使用条件比较苛刻的精密元件，很多情况下都没有机会用上这么奢侈的方案。那么有没有办法能替代掉呢？</p>
+<p><strong>还真有。</strong></p>
+<p>将正弦信号替换为方波信号，就能达到相同的效果。</p>
+<p>仔细思考一下这套系统中的难点如何解决：</p>
 <ul>
-<li><p>情况 A:<br>收到10字节，触发 <code>HT</code> ，随后处理已接收的数据。</p>
+<li><p>首先参考信号要易于产生和调相，方波信号其实就是0和1的周期性变换，非常易于产生和调相。</p>
 </li>
-<li><p>情况 B:<br>收到10字节，触发 <code>TC</code> ，处理现在从最后已知位置 <code>R</code> 开始，直到内存结束。DMA 处于循环模式，因此它会从缓冲区的开头继续传输数据，覆盖原有数据。</p>
-</li>
-<li><p>情况 C:<br>收到10字节，当接收到前<strong>6</strong>字节时，触发了 <code>HT</code> 。但在接下来<strong>4</strong>字节传输后，将再次触发 <code>I</code> 。</p>
-</li>
-<li><p>情况 D:<br>收到10字节，前<strong>4</strong>字节会触发 <code>TC</code> ，随后缓冲区溢出，回到顶点重新覆盖旧数据。接下来<strong>6</strong>字节成功传输到内存后，触发 <code>I</code> 。</p>
-</li>
-<li><p>情况 E:<br>收到<strong>30</strong>字节，超出缓冲区能处理的范围，有<strong>10</strong>字节会被直接覆盖。这时 <code>HT</code> 和 <code>TC</code> 就起到了作用，当刚好发到20个字节时，<code>HT</code> 和 <code>TC</code> 会被分别触发一次。而若这两次都已经被触发过了，还在有新的数据进入，并且一直覆盖过了原先的 <code>R</code> 指针，那么就说明发生了错误，需要及时进行相应的错误处理。</p>
+<li><p>其次就是方波可以在一定程度上等效于乘法：如果我们之间将方波与任意信号相乘，会发现其实当方波为1时，结果就是任意信号本身；而当方波为0时，乘法结果也就是零。</p>
 </li>
 </ul>
-<p>由上述模型可知，HAL库之所以只提供 <code>HT</code> 和 <code>TC</code> 这两个节点的回调，正是因为这两点能够满足最基本的<strong>数据溢出检查</strong>。</p>
-<p>即便数据溢出到能覆盖两轮以上(对于上述的模型也就是在20字节缓冲区里发送40字节及以上)，我们也可以凭中断被多次触发，而数据未被CPU及时处理，来判断UART接收出现了错误。</p>
-<h2 id="Callback问题"><a href="#Callback问题" class="headerlink" title="Callback问题"></a>Callback问题</h2><p>虽然上述想法很好，但是实践起来还是会有一些问题。</p>
-<p>首先IDLE中断会触发下列函数的回调：<br><code>HAL_UART_RxCpltCallback</code><br><code>HAL_UART_RxHalfCpltCallback</code><br><code>HAL_UARTEx_RxEventCallback</code></p>
-<p>那么考虑以下的情况，当数据恰好被填到一半的时候，理应有两次中断被调用：</p>
-<ol>
-<li>当数据被填充到一半时唤起“HAL_UART_RxHalfCpltCallback”</li>
-<li>随后Rx总线空闲，唤起“HAL_UARTEx_RxEventCallback”</li>
-</ol>
-<p>同理，被恰好填充到满时也应该有两次调用，对吧？</p>
-<p><strong>但是事实并非如此</strong>，被恰好填充到满时，数据缓冲区会被重置，并从缓冲区顶重新写入，此时IDLE中断并不会被唤起。</p>
-<p>这就给程序的判断造成了难题，是否能在这里截断？如果数据还没完，就直接将现在接收到的数据交给CPU，那得到的结果肯定是不正确的。</p>
-<p>另一个问题是，两次中断之间是肯定有时间间隙的。像H7这样的芯片，在满主频且串口压力较小的情况下，是真的可以做到在两次中断之间把现有截断的数据处理完成，进而导致结果错误的。</p>
-<p>这些问题的出现既有可能是HAL库设计不周，也有可能 UART IDLE 根本不是这样设计来用的。笔者本人水平一般，暂时没有得出有说服力的结论。之后关于这个问题若是有什么进展，会及时在这篇博客更新。</p>
-<hr>
-<p>倒是有一些比较偷懒的办法解决上述冲突，虽然不太优雅就是了。</p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs Cpp">__HAL_DMA_DISABLE_IT(&amp;DMA_RX_HANDLE, DMA_IT_HT);<br>__HAL_DMA_DISABLE_IT(&amp;DMA_RX_HANDLE, DMA_IT_TC);<br></code></pre></td></tr></table></figure>
+<p>这个效果似乎很眼熟？</p>
+<p>这不就是模拟开关的效果了吗？</p>
+<p>也就是说利用方波控制模拟开关，再间接控制输入信号导通，能达到与乘法器同样的效果。</p>
+<p>接下来给出方波双相位法的示意图：</p>
 
-<p>用上述两个函数可以禁用 <code>HT</code> 和 <code>TC</code> 中断，此时就只有 UART IDLE 的中断会被调用。虽然此时缓冲区被恰好填充完整时，依然不会有任何中断会被调用。但上位机可以任意发送一位信息，唤起IDLE中断让其进行处理。</p>
+    <figure class="figure-image">
+      <img src="https://s2.loli.net/2025/01/10/kG4I6Dz2g8oTRAc.png" alt="双相位法（图源新概念模拟电路IV P239）" loading="lazy" />
+      <figcaption>双相位法（图源新概念模拟电路IV P239）</figcaption>
+    </figure>
+  
+
+<p>这里的大体思路还是与原方案相同，都是将输入信号与待测信号做乘法，将低通滤波后的结果进行平方和开根号，即可得到最后的 $ U_O $ 。</p>
+<p>只是在如下这些细节部分有所不同：</p>
+<ol>
+<li><p>首先是方波与正弦波相乘结果的直流系数不太相同，达到了<strong>0.6366</strong>（图中 $ A_{m1} &#x3D; 1 $ ）</p>
+</li>
+<li><p>其次方波相乘并不能直接等效于乘零，而是应该接上反相器，等效为一个正负对称的方波。</p>
+</li>
+</ol>
+<p>不过上述细节并不影响方案的整体思路，系数的差异可以通过放大器系数的调节解决。</p>
+<p>其中关于直流系数的差异，即<strong>0.6366</strong>到底是怎么得出的，有兴趣的可以自行在书中寻找推导过程，这里并不做深入讨论。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>至此关于锁相放大器的原理部分就差不多分析完毕了。虽然锁相放大器功能强大，但是它的应用场景还是比较少见且深入的。</p>
+<p>毕竟设计难度高，且只适用于一些精细领域的数据测量。</p>
+<p>简单理解一下设计原理，顺带回顾一下三角变换在电路设计里的应用，就足够了。等真的需要设计锁相放大器电路时，再详细了解设计细节比较好。</p>
 
       </section>
 
@@ -221,6 +287,7 @@
       
         <nav class="article-nav">
           
+          
             <div class="article-nav-item layout-padding">
   <article class="card-container article-nav-card content-padding--primary soft-size--large soft-style--box">
     
@@ -230,23 +297,6 @@
       
         <a href="/2024/11/10/241110-details-in-msvc-stl-sort/" itemprop="url">
           <h2 class="card-text--title text-ellipsis">浅析 MSVC STL 中的 sort 实现</h2>
-        </a>
-      
-      <div class="card-text--row">Newer</div>
-    </div>
-  </article>
-</div>
-          
-          
-            <div class="article-nav-item layout-padding">
-  <article class="card-container article-nav-card content-padding--primary soft-size--large soft-style--box">
-    
-      <div class="card-cover" background-image-lazy data-img="https://s2.loli.net/2024/06/10/iMcQbEFkVRUDqpa.jpg"></div>
-    
-    <div class="card-text">
-      
-        <a href="/2024/06/20/240620-stm32-extend-dac/" itemprop="url">
-          <h2 class="card-text--title text-ellipsis">释放 STM32 DAC 性能上限</h2>
         </a>
       
       <div class="card-text--row">Older</div>
@@ -315,7 +365,7 @@
     <span>TOC</span>
   </div>
   <div class="widget-body">
-    <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BC%95%E5%85%A5"><span class="toc-number">1.</span> <span class="toc-text">引入</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#IDLE%E6%A8%A1%E5%BC%8F"><span class="toc-number">2.</span> <span class="toc-text">IDLE模式</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#DMA%E4%B8%AD%E6%96%AD%E6%A8%A1%E5%9E%8B"><span class="toc-number">3.</span> <span class="toc-text">DMA中断模型</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Callback%E9%97%AE%E9%A2%98"><span class="toc-number">4.</span> <span class="toc-text">Callback问题</span></a></li></ol>
+    <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8E%9F%E7%90%86"><span class="toc-number">1.</span> <span class="toc-text">原理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%9B%B8%E4%BD%8D%E5%B7%AE%E9%97%AE%E9%A2%98"><span class="toc-number">2.</span> <span class="toc-text">相位差问题</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%8C%E7%9B%B8%E4%BD%8D%E6%B3%95"><span class="toc-number">3.</span> <span class="toc-text">双相位法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%94%B9%E8%BF%9B"><span class="toc-number">4.</span> <span class="toc-text">改进</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">5.</span> <span class="toc-text">总结</span></a></li></ol>
   </div>
 </section>
 
