@@ -22,7 +22,7 @@
 
   
 
-  <title>留言 | Marisa9961</title>
+  <title>关于AMD指针变白消失的解决方案 | Marisa9961</title>
 
   
 
@@ -47,9 +47,9 @@
 <!-- LXGW -->
 <!-- <link rel="stylesheet" href="https://npm.elemecdn.com/lxgw-wenkai-screen-webfont/style.css" media="print" onload="this.media='all'"> -->
 
-<header class="header-container">
+<header class="header-container post">
   
-    <div class="post-image" style="background-image: url(https://s2.loli.net/2024/06/10/FhgiZNJ2VAHLelp.jpg)"></div>
+    <div class="post-image" style="background-image: url(https://s2.loli.net/2025/08/06/zEJixv15gZRIDXb.jpg)"></div>
   
 
   <!-- navbar -->
@@ -99,53 +99,134 @@
 
   
   
-
-  
-  
     <div class="header-content">
-      <div class="post-text layout-block layout-padding">
-        <h1 class="title-wrap">留言</h1>
-        
-          <h2 class="title-sub-wrap">关于本站的任何评论反馈</h2>
-        
+      <div class="post-text layout-block">
+        <div class="layout-margin">
+          <h1 class="title-wrap">关于AMD指针变白消失的解决方案</h1>
+          <h2 class="title-sub-wrap">
+            <strong>Marisa9961</strong>
+            <span>发布于</span>
+            <time  class="article-date" datetime="2025-08-06T01:59:40.000Z" itemprop="datePublished">2025-08-06</time>
+          </h2>
+          <ul class="wrap-list dark">
+  
+    <li><a href="/categories/Note/">📒 Note</a></li>
+  
+</ul>
+          <ul class="wrap-list dark">
+  
+    <li><a href="/tags/AMD/">🏷️ AMD</a></li>
+  
+</ul>
+        </div>
       </div>
     </div>
+  
+
+  
   
   
 </header>
 
-    <!-- 分页(其他自定义页面) -->
+    <!-- 文章 -->
 
-<!-- 自定义页面 -->
-
+<!-- 文章内容 -->
 <div class="body-container">
   <article class="content-container layout-block post-container">
     <div class="article-info">
       
+      
+      
+      
       <section class="article-entry markdown-body layout-margin content-padding--large soft-size--large soft-style--box">
-        <h2 id="待定"><a href="#待定" class="headerlink" title="待定"></a>待定</h2><p>暂时不准备开放 请尝试通过网页正下方的相关链接直接联系本人<br>折腾起来好麻烦desu…</p>
-<p><img src="https://s2.loli.net/2024/06/10/9yIPOaMHLWFZE1f.jpg" alt="111827093" title="pid:111827093"></p>
+        <h1 id="鼠标指针变白消失了怎么办？"><a href="#鼠标指针变白消失了怎么办？" class="headerlink" title="鼠标指针变白消失了怎么办？"></a>鼠标指针变白消失了怎么办？</h1><p>对于AMD用户来说，每当电脑出现了奇怪的显示问题，首先都要甩锅给AMD。</p>
+<p>前阵子装完一台A卡(6750gre)的电脑后发现，每当鼠标指针指向文本框，指针就会整个变成 <strong>纯白色</strong> ，根本找不到自己的鼠标在哪里。</p>
+
+    <figure class="figure-image">
+      <img src="https://s2.loli.net/2025/08/06/nNMFp14jyGQIVlU.png" alt="鼠标指针在文本框中" loading="lazy" />
+      <figcaption>鼠标指针在文本框中</figcaption>
+    </figure>
+  
+
+<p>虽然反复几次后指针又会恢复成黑色，但这真的很影响使用体验。</p>
+<p>而且我曾经在用N卡的时候就从没遇见过这么奇怪的BUG，于是一口咬定这就是AMD的锅。</p>
+<p>随后询问周围使用A卡(7700xt)的朋友们得到的回答，也都遇到过这个问题。</p>
+<p>这下证据确凿，还能稳定复现，AMD的锅肯定是没跑了。</p>
+<h2 id="问题原因"><a href="#问题原因" class="headerlink" title="问题原因"></a>问题原因</h2><p>随着深入搜索这个问题的深层原因，问题似乎又变得没这么简单。</p>
+<p>在网上众说纷纭的讨论中，很多人都指向了 <a target="_blank" rel="noopener" href="https://learn.microsoft.com/en-us/windows-hardware/drivers/display/multiplane-overlay-support"><strong>MPO(Multiplace Overlay)</strong></a> 这个看起来很陌生的名字。</p>
+<p>经过查询后得知，这是微软早在 windows8.1 时期就引入的一种 <strong>多平面覆盖功能</strong> 。 MPO 允许图形硬件将多层内容组合到一个图像中，然后它可以在屏幕上显示。它本质上是一种硬件加速的方法，用于组合不同的内容平面，而无需涉及 CPU 或使用其他系统资源来执行软件的混合。</p>
+<p>在许多国内外社区的讨论中，这个 <strong>MPO</strong> 早就引起过诸如黑屏卡顿以及掉驱动等常见的显卡问题，包括N卡用户也曾经深受其害。</p>
+<p><a target="_blank" rel="noopener" href="https://forums.guru3d.com/threads/disabling-mpo-multiplace-overlay-can-improve-some-desktop-apps-flicker-or-stutter-issues.445266">Disabling MPO (Multiplace Overlay) can improve some desktop apps flicker or stutter issues</a></p>
+<p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/588397976">AMD显卡黑屏、掉驱动问题解决办法</a></p>
+<p>虽然在后续的更新当中， AMD 和 Nvidia 都陆陆续续解决了一部分的适配问题，但 AMD 这边显然是还没完全修复，至少鼠标移入文本框变白的问题还没得到解决。</p>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><p>网上有人会选择通过禁止浏览器硬件加速，或者修改注册表停用 MPO 来解决这些问题。</p>
+<p>但是笔者觉得这都不是很优雅的解决方案。</p>
+<p>禁用硬件加速后，会明显感觉到浏览器变卡顿，得不偿失。</p>
+<p>而手动修改注册表后，又难以管理，万一将来某次驱动升级，因 MPO 的设置冲突而导致显示异常，也会让人头疼不已。</p>
+<p>虽然直接修改鼠标样式是一个还不错的解决方法，但是笔者并不喜欢花里胡哨的指针外观，更希望以原始样式使用。</p>
+<p>于是在上网冲浪的期间，在巴哈姆特找到了比较合适的解决方案。</p>
+<p><a target="_blank" rel="noopener" href="https://forum.gamer.com.tw/Co.php?bsn=60030&sn=2520155">使用 AMD 顯示卡將滑鼠懸停在文字或文本框上時滑鼠游標消失的解決辦法</a></p>
+<p>其中分享的解决方案就是，单独替换鼠标指针在 “选择文字” 时的样式， windows 自带有多种显示样式，完全能够满足我的要求。</p>
+<p>所以对于各位使用 windows11 的用户，只需要打开 <strong>[windows菜单]&gt;[搜索“鼠标设置”]&gt;[“其他鼠标设置”]&gt;[“指针”]&gt;[“文字选择”]&gt;[“浏览”]&gt;[选择“beam_r.cur”]</strong> 即可解决问题。</p>
+<p>自带的样式与原本的样式之间的区别就是多加了一层描边，在日常使用中也不会有太大的影响，和原始默认的样式很相似。</p>
+<p>于是这个问题就这样轻易的解决了。</p>
+<h2 id="附录"><a href="#附录" class="headerlink" title="附录"></a>附录</h2><p>这篇博客仅作为简短的笔记，记录解决问题的方法。</p>
+<p>一方面是为了给大家提供思路，另一方面也是为了给自己留下笔记，以防将来遗忘。</p>
+<p>如果这篇笔记有帮到你，可以默默在心中点一个赞~</p>
+<p>（毕竟是白嫖了Github的静态网页，做互动功能什么的真的很麻烦啦）</p>
 
       </section>
 
-      
-      
+      <!-- LaTex -->
+      <script>
+        MathJax = {
+          tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']]
+          }
+        };
+        </script>
+        <script id="MathJax-script" async
+          src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+        </script>
+
+
 
       
       
-        <section class="page-message-container layout-padding">
+        <nav class="article-nav">
           
-
-
-  
-  
-
-  
-  
-
-
-        </section>
+          
+            <div class="article-nav-item layout-padding">
+  <article class="card-container article-nav-card content-padding--primary soft-size--large soft-style--box">
+    
+      <div class="card-cover" background-image-lazy data-img="https://s2.loli.net/2025/05/22/WvEKIYysTSL9obt.jpg"></div>
+    
+    <div class="card-text">
       
+        <a href="/2025/05/21/250521-stm32-freertos-lvgl/" itemprop="url">
+          <h2 class="card-text--title text-ellipsis">嵌入式三方库指南：以FreeRTOS与LVGL为例</h2>
+        </a>
+      
+      <div class="card-text--row">Older</div>
+    </div>
+  </article>
+</div>
+          
+        </nav>
+      
+
+      <section class="page-message-container layout-padding">
+        
+
+
+  
+  
+
+  
+  
+
+
+      </section>
     </div>
     <div class="widget-info">
       <section class="widget-author widget-item layout-margin content-padding--primary soft-size--large soft-style--box">
@@ -182,6 +263,20 @@
     </div>
   </div>
 </section>
+
+      
+<section class="widget-toc widget-item layout-margin content-padding--primary soft-size--large soft-style--box">
+  <div class="widget-title">
+    <svg class="icon icon-toc" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <path d="M134.50666666 767.46666668H460.8c27.73333333 0 50.24000001 22.50666668 50.24000001 50.23999999v50.13333333c0 27.73333333-22.50666668 50.24000001-50.24000001 50.24000001H134.50666666c-27.73333333 0-50.24000001-22.50666668-50.23999999-50.24000001v-50.13333333c0.10666668-27.73333333 22.50666668-50.24000001 50.24000001-50.24000001zM84.37333332 541.65333333h326.18666669c27.73333333 0 50.24000001 22.39999999 50.23999999 50.13333334v50.24000001c0 27.73333333-22.50666668 50.24000001-50.24000002 50.23999999H84.37333332c-27.73333333 0-50.24000001-22.50666668-50.23999999-50.23999999v-50.24000001c0-27.73333333 22.50666668-50.13333334 50.24000001-50.13333334zM134.50666666 315.83999999H460.8c27.73333333 0 50.24000001 22.50666668 50.24000001 50.24000001v50.24000001c0 27.73333333-22.50666668 50.13333334-50.24000001 50.13333333H134.50666666c-27.73333333 0-50.24000001-22.39999999-50.23999999-50.13333333v-50.24000001c0.10666668-27.84000001 22.50666668-50.24000001 50.24000001-50.23999999zM209.81333332 89.91999999h326.18666671c27.73333333 0 50.24000001 22.39999999 50.23999997 50.13333335v50.23999999c0 27.73333333-22.50666668 50.24000001-50.24000001 50.24000001H209.81333332c-27.73333333 0-50.24000001-22.50666668-50.23999999-50.24000001v-50.24000001c0-27.73333333 22.50666668-50.13333334 50.24000001-50.13333333zM692.05333333 623.36l274.66666669 176.00000002c23.36000001 14.93333333 30.08 45.97333334 15.14666666 69.33333332L954.77333334 910.93333333c-14.93333333 23.25333334-45.97333334 30.08-69.33333335 15.14666667l-274.66666666-176c-23.36000001-14.93333333-30.08-45.97333334-15.14666667-69.33333333l27.09333334-42.24000001c14.93333333-23.36000001 46.08000001-30.08 69.33333333-15.14666666z" fill="currentColor"></path>
+</svg>
+    <span>TOC</span>
+  </div>
+  <div class="widget-body">
+    <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%97%AE%E9%A2%98%E5%8E%9F%E5%9B%A0"><span class="toc-number">1.</span> <span class="toc-text">问题原因</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="toc-number">2.</span> <span class="toc-text">解决方案</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%99%84%E5%BD%95"><span class="toc-number">3.</span> <span class="toc-text">附录</span></a></li></ol>
+  </div>
+</section>
+
 
       
 
@@ -245,7 +340,6 @@
     </div>
   </article>
 </div>
-
 
     <!-- footer container -->
 <footer id="footer" class="footer">
