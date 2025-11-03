@@ -185,10 +185,9 @@
 <td>依赖厂商，无法导出编译数据库</td>
 </tr>
 </tbody></table>
-<h2 id="如何获取三方库"><a href="#如何获取三方库" class="headerlink" title="如何获取三方库"></a>如何获取三方库</h2><p>一般的开源库都会选择在 <code>Github</code> 存储源代码，所以在 Release 页面就可以获取到当前最新的发行版本。如果没有 Release 发布页面，也可以阅读 README 文件来寻找获取方式。</p>
-<p>对于由专业组织维护的开源项目（如 FreeRTOS 由亚马逊维护， LVGL 由开源社区主导），建议通过其官方网站获取最新的稳定版本。</p>
-<p>虽然在 Github 也能够查找并获取到 FreeRTOS 和 LVGL 的源码仓库，可以直接下载下来，但这类代码常常是处在版本更迭之间，还未修缮完毕或者还未开发完成的状态，因此并不建议直接引入到自己的项目当中。不过仓库页面中也可能包含了 Release 页面，可以获取到稳定版本。</p>
-<p>但通常并不建议这样做。因为这类开源代码有更稳定的版本供以选择，通常叫做 LTS 版（长期支持版本），如下图所示。</p>
+<h2 id="如何获取三方库"><a href="#如何获取三方库" class="headerlink" title="如何获取三方库"></a>如何获取三方库</h2><p>一般的开源库都会选择在 <code>Github</code> 存储源代码，所以在 Release 页面就可以获取到当前最新的发行版本。如果没有 Release 发布页面，也可以阅读 README 文件来寻找线索。</p>
+<p>不过虽然在 Github 可以直接获取当前的源码，但这类代码常常是处在版本更迭之间，还未修缮完毕或者还未开发完成的状态，因此并不建议直接引入到自己的项目当中。</p>
+<p>对于维护较为完善的开源项目，他们通常都有更稳定的版本供以选择，叫做 LTS 版（长期支持版本），如下图所示。</p>
 
     <figure class="figure-image">
       <img src="https://s2.loli.net/2025/05/23/mR3jUzWAHPtgsq6.jpg" alt="FreeRTOS官网下载页面" loading="lazy" />
@@ -196,8 +195,8 @@
     </figure>
   
 
-<p>这类版本通常是具有足够的稳定性，只要在维护年限内出现了问题，官方都会尽快提供修复补丁。总而言之，无论是对于商业开发还是个人开发，选择 LTS 版本都有利于长期稳定。</p>
-<p>在开发过程中，如果有足够的理由怀疑三方库出现了 Bug ，也可以在相应仓库的 issue 里提出。但如果只是由于自己对于三方库功能使用不当造成的问题，还是建议三思之后再提出，不然会比较尴尬。</p>
+<p>这类版本通常是长期支持，不会由于内容更新而引入新的 Bug 。无论是对于商业开发还是个人开发，选择 LTS 版本都有利于长期稳定。</p>
+<p>在开发过程中，如果有足够的理由怀疑三方库出现了问题，也可以在相应仓库的 issue 里提出。但如果只是由于自己对于三方库功能使用不当造成的问题，还是建议自行尝试解决之后再提出，不要无效提问。</p>
 <h2 id="引入方式的选择"><a href="#引入方式的选择" class="headerlink" title="引入方式的选择"></a>引入方式的选择</h2><p>繁琐的话题到此为止，现在开始讲解当拿到一个库之后，如何阅读其中的提示信息，并将库引入到自己的项目。</p>
 <p>接下来，以 FreeRTOS 的 LTS 版本为例讲解，请各位可以试着下载一份源码，并按照步骤对照阅读。</p>
 <p>首先，当我们拿到一份陌生的开源库，应该首先寻找其中的使用示例或者教学文档。按照文档中提示的内容进行，能够尽可能避开错误和误区。</p>
@@ -246,53 +245,6 @@
 <p>非常简单的一段脚本对吧，掌握了基本 CMake 语法之后可以轻易读懂。所以我说的简化引入方式并没有什么神秘之处。因此，比起寻找更简洁的构建方式，不如先从项目的文件管理下手，将引入三方库的工作进行解耦设计，这样就能使得代码设计更加简洁。</p>
 <h2 id="补充点没讲到的"><a href="#补充点没讲到的" class="headerlink" title="补充点没讲到的"></a>补充点没讲到的</h2><p>在 <a target="_blank" rel="noopener" href="https://github.com/Marisa9961/SmartBand">SmartBand</a> 项目仓库中，我总共引入了 LVGL 、 LittleFS ，并没有出现 FreeRTOS 的源文件和构建脚本。这是因为 STM32CubeMX 中提供的 CMSIS-RTOS 兼容层已经包含了这些源代码，而这些源代码又被我的 <code>cmake/stm32cubemx.cmake</code> 所包含，所以实际上可以省去这个步骤。</p>
 <p>另一个没有在本篇博客中举例讲解的 LittleFS 可以自行查看，原理大致相同，但是其源代码并不提供接口耦合， <code>LittleFS/porting</code> 是我仿照 LVGL 的接口自行编写的，如有想要借鉴的可以自行研究。</p>
-<p>项目中的核心代码部分也值得阅读，可以参考如下目录：</p>
-<table>
-<thead>
-<tr>
-<th>目录路径</th>
-<th>内容类型</th>
-<th>典型文件</th>
-<th>功能说明</th>
-<th>维护方式</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><code>base/</code></td>
-<td>系统基础代码</td>
-<td><code>init.c</code></td>
-<td>系统初始化&#x2F;任务跳转</td>
-<td>手动开发</td>
-</tr>
-<tr>
-<td><code>components/</code></td>
-<td>硬件驱动</td>
-<td><code>lcd.c</code></td>
-<td>显示屏等外设驱动</td>
-<td>手动开发</td>
-</tr>
-<tr>
-<td><code>func/</code></td>
-<td>功能模块</td>
-<td><code>task.cpp</code></td>
-<td>数据处理&#x2F;工具函数</td>
-<td>手动开发</td>
-</tr>
-<tr>
-<td><code>tasks/</code></td>
-<td>RTOS任务</td>
-<td><code>gui.cpp</code></td>
-<td>FreeRTOS任务实现</td>
-<td>手动开发</td>
-</tr>
-<tr>
-<td><code>ui/</code></td>
-<td>LVGL界面</td>
-<td><code>ui.c</code></td>
-<td>UI界面代码及控件</td>
-<td>SquareLine Studio生成+手动优化</td>
-</tr>
-</tbody></table>
 <h2 id="构建或许没那么神秘"><a href="#构建或许没那么神秘" class="headerlink" title="构建或许没那么神秘"></a>构建或许没那么神秘</h2><p>到了这里，本文的主题就差不多探讨完了。</p>
 <p>整个项目的构建过程虽然重要，但真正让项目活起来的，是这些组件之间的配合。通过合理的任务划分、通信传递和资源共享，各个模块各司其职又相互配合，最终达到总体的目标。这些实践经验，才是最重要的精华，愿大家共勉。</p>
 <hr>
@@ -318,22 +270,6 @@
       
       
         <nav class="article-nav">
-          
-            <div class="article-nav-item layout-padding">
-  <article class="card-container article-nav-card content-padding--primary soft-size--large soft-style--box">
-    
-      <div class="card-cover" background-image-lazy data-img="https://s2.loli.net/2025/08/06/zEJixv15gZRIDXb.jpg"></div>
-    
-    <div class="card-text">
-      
-        <a href="/2025/08/06/250806-amd-mouse-problem/" itemprop="url">
-          <h2 class="card-text--title text-ellipsis">关于AMD指针变白消失的解决方案</h2>
-        </a>
-      
-      <div class="card-text--row">Newer</div>
-    </div>
-  </article>
-</div>
           
           
             <div class="article-nav-item layout-padding">
@@ -386,19 +322,19 @@
         <svg class="icon icon-article" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
   <path d="M240.51564747 647.74217627h196.07203239c16.59071043 0 30.16492806-13.57421762 30.16492805-30.16492806V165.10332731c0-33.18142087-30.16492806-60.32985613-60.32985612-60.32985611H245.04038668C225.43318342 104.7734712 210.35071939 119.85593522 210.35071939 139.46313845V617.57724821c0 16.59071043 13.57421762 30.16492806 30.16492808 30.16492806z m663.62841731-452.47392089v482.63884894c0 33.18142087-27.14843525 60.32985613-60.32985612 60.32985613H180.18579134c-33.18142087 0-60.32985613-27.14843525-60.32985612-60.32985613V195.26825538c-49.77213131 0-90.49478418 40.72265287-90.49478417 90.49478417v452.4739209c0 49.77213131 40.72265287 90.49478418 90.49478417 90.49478417h286.56681657c16.59071043 0 30.16492806 13.57421762 30.16492807 30.16492807s13.57421762 30.16492806 30.16492805 30.16492806h90.49478418c16.59071043 0 30.16492806-13.57421762 30.16492805-30.16492806s13.57421762-30.16492806 30.16492807-30.16492807h286.56681657c49.77213131 0 90.49478418-40.72265287 90.49478417-90.49478417V285.76303955c0-49.77213131-40.72265287-90.49478418-90.49478417-90.49478417zM587.41232014 647.74217627h191.54729318c19.60720323 0 34.68966726-15.08246403 34.68966729-34.68966727V134.93839925c0-16.59071043-13.57421762-30.16492806-30.16492808-30.16492805H617.57724821c-30.16492806 0-60.32985613 27.14843525-60.32985612 60.32985611v452.4739209c0 16.59071043 13.57421762 30.16492806 30.16492805 30.16492806z" fill="currentColor"></path>
 </svg>
-        <span>7</span>
+        <span>6</span>
       </div>
       <div class="count-box--item">
         <svg class="icon icon-categories" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
   <path d="M900.3614811 257.09082106h-339.81629553l-67.96326003-101.9448889c-19.41807444-29.12711113-48.54518557-43.69066667-82.52681443-43.69066667H123.6385189c-53.39970333 0-97.09036999 43.69066667-97.09037113 97.09036999v582.54222222c0 53.39970333 43.69066667 97.09036999 97.09037113 97.09037002h776.7229622c53.39970333 0 97.09036999-43.69066667 97.09037113-97.09037002V354.18119104c0-53.39970333-43.69066667-97.09036999-97.09037113-97.09036998z m-97.09036999 242.72592554H220.72888889c-24.27259221 0-48.54518557-24.27259221-48.54518556-48.54518556s24.27259221-48.54518557 48.54518556-48.54518444h582.54222222c24.27259221 0 48.54518557 24.27259221 48.54518556 48.54518444s-24.27259221 48.54518557-48.54518556 48.54518556z" fill="currentColor"></path>
 </svg>
-        5
+        4
       </div>
       <div class="count-box--item">
         <svg class="icon icon-tags" viewBox="0 0 1098 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
   <path d="M283.42180005 272q0-28.38857157-20.09142843-48.48000001t-48.47999998-20.09142842-48.48000002 20.09142842-20.09142846 48.48000001 20.09142846 48.48 48.48000002 20.09142843 48.47999998-20.09142843 20.09142843-48.48zM855.0332285 580.57142843q0 28.38857157-19.81714313 48.2057147l-263.03999997 263.58857157q-20.9142853 19.81714313-48.75428534 19.81714312-28.38857157 0-48.20571468-19.81714312l-383.04-383.58857157q-20.36571468-19.81714313-34.55999999-54.10285688t-14.19428534-62.6742853l0-222.85714313q0-27.84000002 20.36571469-48.20571469t48.2057147-20.36571466l222.85714313 0q28.38857157 0 62.6742853 14.19428529t54.65142842 34.55999999l383.04000001 382.49142843q19.81714313 20.9142853 19.81714314 48.75428532zM1060.74751475 580.57142843q0 28.38857157-19.81714313 48.2057147l-263.04 263.58857157q-20.9142853 19.81714313-48.75428531 19.81714312-19.26857155 0-31.61142843-7.47428531t-28.38857159-24.13714314l251.79428534-251.7942853q19.81714313-19.81714313 19.81714308-48.20571469 0-27.84000002-19.81714308-48.75428531l-383.04000001-382.49142845q-20.36571468-20.36571468-54.65142842-34.55999999t-62.67428532-14.19428534l120 0q28.38857157 0 62.67428532 14.19428534t54.65142842 34.55999999l383.03999998 382.49142845q19.81714313 20.9142853 19.81714314 48.75428531z" fill="currentColor"></path>
 </svg>
-        12
+        11
       </div>
     </div>
   </div>
@@ -454,12 +390,6 @@
           </a>
         </li>
       
-        <li class="categorys-list-item">
-          <a href="/categories/Note/">
-            Note (1)
-          </a>
-        </li>
-      
     </ul>
   </div>
 </section>
@@ -473,7 +403,7 @@
   </div>
   <div class="widget-body">
     <div class="tags-cloud">
-      <a href="/tags/AMD/" style="font-size: 10px;" class="tags-cloud-0">AMD</a> <a href="/tags/Algorithm/" style="font-size: 10px;" class="tags-cloud-0">Algorithm</a> <a href="/tags/Amplifier/" style="font-size: 10px;" class="tags-cloud-0">Amplifier</a> <a href="/tags/FreeRTOS/" style="font-size: 10px;" class="tags-cloud-0">FreeRTOS</a> <a href="/tags/Hexo/" style="font-size: 10px;" class="tags-cloud-0">Hexo</a> <a href="/tags/LVGL/" style="font-size: 10px;" class="tags-cloud-0">LVGL</a> <a href="/tags/MSVC/" style="font-size: 10px;" class="tags-cloud-0">MSVC</a> <a href="/tags/PLL/" style="font-size: 10px;" class="tags-cloud-0">PLL</a> <a href="/tags/SPI/" style="font-size: 10px;" class="tags-cloud-0">SPI</a> <a href="/tags/STL/" style="font-size: 10px;" class="tags-cloud-0">STL</a> <a href="/tags/STM32/" style="font-size: 20px;" class="tags-cloud-10">STM32</a> <a href="/tags/UART/" style="font-size: 10px;" class="tags-cloud-0">UART</a>
+      <a href="/tags/Algorithm/" style="font-size: 10px;" class="tags-cloud-0">Algorithm</a> <a href="/tags/Amplifier/" style="font-size: 10px;" class="tags-cloud-0">Amplifier</a> <a href="/tags/FreeRTOS/" style="font-size: 10px;" class="tags-cloud-0">FreeRTOS</a> <a href="/tags/Hexo/" style="font-size: 10px;" class="tags-cloud-0">Hexo</a> <a href="/tags/LVGL/" style="font-size: 10px;" class="tags-cloud-0">LVGL</a> <a href="/tags/MSVC/" style="font-size: 10px;" class="tags-cloud-0">MSVC</a> <a href="/tags/PLL/" style="font-size: 10px;" class="tags-cloud-0">PLL</a> <a href="/tags/SPI/" style="font-size: 10px;" class="tags-cloud-0">SPI</a> <a href="/tags/STL/" style="font-size: 10px;" class="tags-cloud-0">STL</a> <a href="/tags/STM32/" style="font-size: 20px;" class="tags-cloud-10">STM32</a> <a href="/tags/UART/" style="font-size: 10px;" class="tags-cloud-0">UART</a>
     </div>
   </div>
 </section>
