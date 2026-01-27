@@ -4,6 +4,33 @@
   
   
   <entry>
+    <title>斩波放大器：理论研究笔记</title>
+    <link href="/2026/01/27/260127-analysis-of-chopper-opamps/"/>
+    <url>/2026/01/27/260127-analysis-of-chopper-opamps/</url>
+    
+    <content type="html"><![CDATA[<p>提到斩波，第一反应总是电力电子中的斩波。</p><p>但实际上这一说法并不只在升降压变换中使用，在运算放大器中也有一类神奇的分支，叫做斩波运算放大器。</p><p>本篇文章接下来就将简要讲解关于斩波放大器的相关理论，如有疏漏，还望指正。</p><h2 id="稳定精密"><a href="#稳定精密" class="headerlink" title="稳定精密"></a>稳定精密</h2><p>在一些精密电路设计的情景中，通常会对运放的失调和漂移提出很高的要求。</p><p>如果寄希望于集成电路的进步来提高性能，可能最终等来的只会是高昂的成本。然而如果通过模拟信号处理的方式解决，或许可以有更好的解决方法。</p><p>在数十年前，工程师们就面临着这样的问题，于是<strong>斩波放大器</strong>应运而生，在当时的工艺上进一步降低了失调和温漂。</p><p>在 ADI 的一篇应用指南 <strong>MT-055</strong> 中提到，当时最好的双极性放大器的失调电压为 <strong>25μV</strong> ，漂移为 <strong>0.1μV&#x2F;°C</strong> 。然而如果使用斩波运放，就能将失调进一步降低到 <strong>5μV</strong> 以及更小的失调漂移<sup id="fnref:1" class="footnote-ref"><a href="#fn:1" rel="footnote"><span class="hint--top hint--rounded" aria-label="ADI技术指南-斩波稳定(自稳零)精密运算放大器">[1]</span></a></sup>。</p><h2 id="原理分析"><a href="#原理分析" class="headerlink" title="原理分析"></a>原理分析</h2><h4 id="1-本底噪声"><a href="#1-本底噪声" class="headerlink" title="1.本底噪声"></a>1.本底噪声</h4><p>在深入讲解原理前，先简要说明一下，在精密测量领域，主要存在两类噪声干扰，一类是电路干扰，另一类是本底噪声。</p><p>电路干扰可以通过技术手段尽可能削弱。但闪烁噪声是元器件的固有效应，不仅难以过滤，且功率谱密度随着频率的降低反而会增大。意味着在直流或低频信号处理中，它会直接叠加在有用信号上，难以通过常规滤波手段根除。</p><p><img src="https://s2.loli.net/2026/01/27/9ohCkx8pOalXnHB.png" alt="闪烁噪声的功率频谱图"></p><h4 id="2-自稳零与斩波"><a href="#2-自稳零与斩波" class="headerlink" title="2.自稳零与斩波"></a>2.自稳零与斩波</h4><p>那么斩波结构是如何抑制这些干扰的呢？</p><p>首先要提到的是，目前的斩波运放包含了两种不同的技术，分别是<strong>自稳零与斩波</strong>。他们都有斩波过程，但在原理上大不相同，所以它们更适合被统称为零漂放大器。</p><p>所以本文接下来就会严格区分两类运放，自稳零运放和斩波运放，不再混淆说明为斩波放大器。</p><p>我们先从<strong>自稳零</strong>讲起，先来看一张图，展示了经典的自稳零运放构成。</p><p><img src="https://s2.loli.net/2026/01/27/Br2H8S3RYzvECl1.png" alt="经典自稳零放大器"></p><p>整体电路由 <strong>CHOPPER SWITCH DRIVER</strong> 控制，在运放输入输出端都增加了开关以及串联电容。</p><p>当开关处于 Z 时，电容 C2 直接对地，采样并存储了此时的失调电压误差，使得在正确的信号回路时，该误差可以被电容电压抵消，这样就实现了<strong>抑制运放自身偏置</strong>。此时输出端也执行相同动作，将输出偏置降到最低。当开关接回 S 时，形成输入通路，此时的整个通路上的偏置是趋于零的，这样就达到了我们的目的。这就是自稳零作用，但是单单是自稳零对于 1&#x2F;f 噪声的抑制并不彻底。</p><p>不过这真的是个很巧妙的方法对吧，然而<strong>仔细想想就会发现其实并不合理</strong>，到底是哪里不合理呢？既然采用电容平衡偏置，那么电容充放电的间隔是多少，如何界定？开关难道不会引入额外的噪声？既然有开关频率限制，那这样的运放还剩下多少的有效带宽？更致命的是，这种采样处理方式是否会把高频噪声<strong>折叠</strong>到基带，反而搞砸了原本干净的信号？</p><p>这些新的问题我们暂且按下不表，继续剖析<strong>斩波</strong>的核心原理。</p><p><img src="https://s2.loli.net/2026/01/27/DpcfPZwz6O19rUd.png" alt="斩波放大器流程图"></p><p>如果说自稳零是靠<strong>电容存储</strong>来减去偏差，那么斩波则是进行更高级的<strong>频谱搬移</strong>。</p><p>例如流程图的左上角，信号 $V_{in}$ 的频谱原本分布在极低频段，接下来通过与方波 $M_1(t)$ 相乘，实现频谱搬移。然后再叠加 $V_{OS}+V_N$ 即运放的偏置与噪声，结合成 $V_A$ 的频谱。最后在输出端，经过方波 $M_2(t)$ 的解调，<strong>原信号的频谱返回到初始位置，而噪声信号被搬移至更高频</strong>，接下来只需要低通滤波器的处理，就可以移除噪声的影响。</p><p>经历了两次方波相乘（调制+解调），相当于乘以 $M_1(t) \cdot M_2(t)$。因为两者同步，结果为 1，所以信号<strong>回到了原位</strong>。而噪声只经历了一次相乘（解调），所以从直流（DC）被<strong>搬移到了方波频率及其奇次谐波</strong>上。</p><p>如果觉得不够直观，还可以看下图中的仿真结果<sup id="fnref:2" class="footnote-ref"><a href="#fn:2" rel="footnote"><span class="hint--top hint--rounded" aria-label="吴孙桃,林凡,郭东辉,等.基于斩波技术的CMOS运算放大器失调电压的消除设计[J].半导体技术,2003,(08):60-64.">[2]</span></a></sup>：</p><p><img src="https://s2.loli.net/2026/01/27/jEpGmuhKH5FSPIk.png" alt="斩波放大器仿真"></p><p>从全流程的频谱变化中，可以清晰看到每一步流程的清晰变化，从一个单纯的正弦波再到被方波相乘，再到被解调，然后配合滤波器后得到<strong>更加理想的正弦频谱</strong>。而且对比最开始的频谱和最终的频谱，可以看到尖峰更加独立，而非紧贴着纵轴。也就是说，放大后的正弦摆脱了偏置和 1&#x2F;f 噪声的影响。</p><h4 id="3-斩波并非完美"><a href="#3-斩波并非完美" class="headerlink" title="3.斩波并非完美"></a>3.斩波并非完美</h4><p>讨论了这么多内容，其实斩波技术也并非灵丹妙药，它在解决旧问题的同时，也带来了不少新麻烦。</p><p>首先，<strong>开关调制会引入时钟馈通</strong>，会在信号通路上产生新的斩波纹波。如果处理不好，这些纹波甚至会直接掩盖掉你想测量的微弱信号。</p><p>其次，开关频率受限于运放本身的带宽与稳定性。<strong>斩波频率无法无限提高</strong>，意味着它对高于斩波频率的噪声抑制能力有限。同时，为了保证信号在开关切换瞬间能够准确建立，你必须在带宽与功耗之间做出艰难的取舍。</p><p>因此，实际设计中，常在斩波架构外增加纹波抑制电路、自动校准环路或是辅助放大器，以平衡性能与复杂度。</p><p>关于前面在分析过程中提到的问题，我们会注意到：自稳零使用采样保持技术，由于噪声折回基带，其带内电压噪声较大，这确实是难以弥补的缺陷。而斩波使用信号调制和解调技术，具有更低的基带噪声，但在斩波频率及谐波处产生噪声频谱。因此，斩波放大器更适合直流或低频应用，自稳零放大器则更适合宽带宽应用<sup id="fnref:3" class="footnote-ref"><a href="#fn:3" rel="footnote"><span class="hint--top hint--rounded" aria-label="ADI应用笔记-最低噪声的零漂移放大器提供5.6nV/√Hz电压噪声密度">[3]</span></a></sup>。</p><p>在实际应用中，为了兼顾低频噪声与带宽性能，许多高性能精密运放会采用斩波与自稳零结合的架构，或在斩波核心外增加辅助高速通路，以在抑制漂移与噪声的同时，拓展可用带宽。</p><h2 id="简单总结"><a href="#简单总结" class="headerlink" title="简单总结"></a>简单总结</h2><p>斩波技术是一种用于精密测量的有效方式，它通过自稳零与调制-解调机制，将工艺和器件本身的低频噪声滤除，从而在常规工艺基础上实现了接近理论极限的直流精度。尽管仍有不足，但在传感器信号采集、医疗仪器、高精度检测等要求极致失调与低温漂的领域，它仍是不可或缺的关键技术之一。</p><h2 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h2><section class="footnotes"><div class="footnote-list"><ol><li><span id="fn:1" class="footnote-text"><span>ADI技术指南-斩波稳定(自稳零)精密运算放大器<a href="#fnref:1" rev="footnote" class="footnote-backref"> ↩</a></span></span></li><li><span id="fn:2" class="footnote-text"><span>吴孙桃,林凡,郭东辉,等.基于斩波技术的CMOS运算放大器失调电压的消除设计[J].半导体技术,2003,(08):60-64.<a href="#fnref:2" rev="footnote" class="footnote-backref"> ↩</a></span></span></li><li><span id="fn:3" class="footnote-text"><span>ADI应用笔记-最低噪声的零漂移放大器提供5.6nV&#x2F;√Hz电压噪声密度<a href="#fnref:3" rev="footnote" class="footnote-backref"> ↩</a></span></span></li></ol></div></section>]]></content>
+    
+    
+    <categories>
+      
+      <category>Analog</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>Amplifier</tag>
+      
+      <tag>Chopper</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>嵌入式三方库指南：以FreeRTOS与LVGL为例</title>
     <link href="/2025/05/21/250521-stm32-freertos-lvgl/"/>
     <url>/2025/05/21/250521-stm32-freertos-lvgl/</url>
