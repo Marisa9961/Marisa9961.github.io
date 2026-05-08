@@ -28,7 +28,7 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://files.seeusercontent.com/2026/04/10/xzC0/61082992.jpg">
 <meta property="article:published_time" content="2026-04-10T09:15:40.000Z">
-<meta property="article:modified_time" content="2026-04-10T14:25:27.700Z">
+<meta property="article:modified_time" content="2026-05-08T06:43:36.691Z">
 <meta property="article:author" content="Marisa9961">
 <meta property="article:tag" content="FeRam">
 <meta property="article:tag" content="Rust">
@@ -303,7 +303,7 @@
 <p>不过缺点同样明显：存储密度低、制程难以微缩、且读出操作是破坏性的（读取后需重新写入）。不过对于专用场景，比如工业日志记录、金融交易存证、航天数据存储，这些特性恰好契合了高耐久、高可靠的需求。</p>
 <h2 id="FeRamDisk项目概述"><a href="#FeRamDisk项目概述" class="headerlink" title="FeRamDisk项目概述"></a>FeRamDisk项目概述</h2><p>FeRamDisk 是一款基于 STM32G431CBU6 主控与 MB85RS2MTA 存储介质的专用闪存盘。</p>
 <p><img src="https://files.seeusercontent.com/2026/04/10/y7uJ/260410_FeRamDisk_PCB.jpg" srcset="/img/loading.gif" lazyload alt="FeRamDisk PCB 渲染图"></p>
-<p>MB85RS2MTA 是富士通出品的 SPI 接口 FeRAM 芯片，容量为 2Mbit（即 256KB），支持 40MHz 时钟频率。<strong>本项目使用了四片 MB85RS2MTA，总计达到的存储空间为 1MB。</strong></p>
+<p>MB85RS256 是富士通出品的 SPI 接口 FeRAM 芯片，容量为 32 kB（即 256 Kbit），支持 40 MHz 时钟频率。<strong>本项目使用了四片 MB85RS256，总计达到的存储空间为 128 kB</strong>。</p>
 <p>主控选用意法半导体的 STM32G431，这是一颗 Cortex-M4F 内核的 MCU，主频可达 170MHz，内置 USB 2.0 全速控制器，适合实现 USB 大容量存储设备。</p>
 <p>程序的运作逻辑并不复杂：通过 USB 连接主机，枚举为大容量存储设备（MSC类）；主机下发 SCSI 命令，STM32G431 解析后通过 SPI 总线对 FeRAM 进行相应操作。由于 FeRAM 本身按字节随机读写且无擦除等待，整个U盘在主机侧表现为一个无需磨损均衡、写入延迟极低的块设备。</p>
 <p>PCB 采用四层板设计，主控与 FeRAM 之间仅需数根 SPI 信号线外加片选。全部硬件资料（KiCad 工程）与固件代码均已在 GitHub 仓库开源，链接附于文末。</p>
