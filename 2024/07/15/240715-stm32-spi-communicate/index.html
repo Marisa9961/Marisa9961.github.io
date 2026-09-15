@@ -1,0 +1,996 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.ico">
+  <link rel="icon" href="/img/fluid.ico">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Marisa9961">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="最近在做UART与上位机通信的时候，注意到STM32的UART居然支持硬件IDLE。 于是就尝试了一把 IDLE+DMA 的模式，使得设备可以自动在接收空闲时唤起中断，DMA直接搬运数据到内存，实现任意长度的命令或是数据都能自动完成接收和回调。 IDLE模式首先来讲讲什么是IDLE模式？ 所谓的IDLE就是not working or being used，翻译成中文就是闲置状态。当UART的Rx">
+<meta property="og:type" content="article">
+<meta property="og:title" content="UART通信：IDLE+DMA的优化技巧">
+<meta property="og:url" content="https://marisa9961.github.io/2024/07/15/240715-stm32-spi-communicate/index.html">
+<meta property="og:site_name" content="Marisa9961">
+<meta property="og:description" content="最近在做UART与上位机通信的时候，注意到STM32的UART居然支持硬件IDLE。 于是就尝试了一把 IDLE+DMA 的模式，使得设备可以自动在接收空闲时唤起中断，DMA直接搬运数据到内存，实现任意长度的命令或是数据都能自动完成接收和回调。 IDLE模式首先来讲讲什么是IDLE模式？ 所谓的IDLE就是not working or being used，翻译成中文就是闲置状态。当UART的Rx">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://marisa9961.github.io/img/240715/cover.jpg">
+<meta property="article:published_time" content="2024-07-15T07:44:32.000Z">
+<meta property="article:modified_time" content="2026-09-14T11:49:55.808Z">
+<meta property="article:author" content="Marisa9961">
+<meta property="article:tag" content="SPI">
+<meta property="article:tag" content="STM32">
+<meta property="article:tag" content="UART">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://marisa9961.github.io/img/240715/cover.jpg">
+  
+  
+    <meta name="referrer" content="no-referrer-when-downgrade">
+  
+  
+  <title>UART通信：IDLE+DMA的优化技巧 - Marisa9961</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"marisa9961.github.io","root":"/","version":"1.9.9","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"expand_all":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":true},"openkounter":{"server_url":"https://open-kounter.mintimate.cn","path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+  
+
+
+
+
+  
+<meta name="generator" content="Hexo 8.1.2"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Marisa9961</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content (desktop) -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/links/" target="_self">
+                <i class="iconfont icon-link-fill"></i>
+                <span>友链</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Mobile grid menu overlay -->
+<div id="mobile-grid-menu" class="d-lg-none">
+  <div class="mobile-grid-menu-inner">
+    <div class="container">
+      <div class="row">
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-home-fill"></i>
+                  <span>首页</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/archives/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-archive-fill"></i>
+                  <span>归档</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/links/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-link-fill"></i>
+                  <span>友链</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/about/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-user-fill"></i>
+                  <span>关于</span>
+                </div>
+              </a>
+            </div>
+          
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-search-btn">
+            <a href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-search"></i>
+                <span>搜索</span>
+              </div>
+            </a>
+          </div>
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-color-toggle-btn"
+               data-label-light="开灯"
+               data-label-dark="关灯">
+            <a href="javascript:;" aria-label="Color Toggle">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-dark" id="mobile-color-toggle-icon"></i>
+                <span id="mobile-color-toggle-label">关灯</span>
+              </div>
+            </a>
+          </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.jpg') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="UART通信：IDLE+DMA的优化技巧"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2024-07-15 15:44" pubdate>
+          2024年7月15日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.4k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          21 分钟
+        
+      </span>
+    
+
+    
+    
+      
+        <span id="busuanzi_container_page_pv" style="display: none">
+          <i class="iconfont icon-eye" aria-hidden="true"></i>
+          <span id="busuanzi_value_page_pv"></span> 次
+        </span>
+        
+
+      
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">UART通信：IDLE+DMA的优化技巧</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <p>最近在做UART与上位机通信的时候，注意到STM32的UART居然支持硬件IDLE。</p>
+<p>于是就尝试了一把 <code>IDLE+DMA</code> 的模式，使得设备可以自动在接收空闲时唤起中断，DMA直接搬运数据到内存，实现任意长度的命令或是数据都能自动完成接收和回调。</p>
+<h2 id="IDLE模式"><a href="#IDLE模式" class="headerlink" title="IDLE模式"></a>IDLE模式</h2><p>首先来讲讲什么是IDLE模式？</p>
+<p>所谓的IDLE就是not working or being used，翻译成中文就是闲置状态。当UART的Rx总线收到持续信息时，会在最后一帧数据结束后进行检查，当出现了至少一帧的闲置电平，就会唤醒相关的回调函数管理。也就实现了无论数据长度有多长，都会自动停止接收并进入中断处理，非常方便。</p>
+<p>网上某些过时的教程会告诉你，UART的IDLE模式要通过以下这样的语句开启：<br><code>__HAL_UART_ENABLE_IT(&amp;huart1, UART_IT_IDLE)</code></p>
+<p>其实HAL库目前已经将IDLE的相关功能封装成了正式函数，并且已经包含在下列库文件中。</p>
+<ul>
+<li>stm32g4xx_hal_uart_ex.c</li>
+<li>stm32g4xx_hal_uart_ex.h</li>
+</ul>
+<p>现在打开IDLE模式的正确姿势应该是：<br><code>HAL_UARTEx_ReceiveToIdle</code><br><code>HAL_UARTEx_ReceiveToIdle_IT</code><br><code>HAL_UARTEx_ReceiveToIdle_DMA</code></p>
+<p>这些函数会自动开启IDLE功能，并启用相关的中断。IDLE接收本身就很方便，但如果再加上DMA辅助搬运数据，就更能为CPU分担压力，节省计算资源。</p>
+<p>然而如果我们真的想写一个足够健壮且高效的串口处理程序，不用的时候就安静的待在一边，数据来了的时候就自动接收、自动搬运、自动停止、自动通知CPU处理。</p>
+<p><strong>那可能还真没那么好写</strong>，因为一旦牵扯到DMA，问题就会开始变得复杂。</p>
+<p>当一组数据被传递过来，而CPU还在运算其他优先级更高的任务，来不及处理这批数据。紧接着又来了一批数据把上一批数据全部覆盖掉，此时的CPU就浑然不知，只做了一批数据的回调处理就继续干别的去了，这样就导致了前一批数据丢失。</p>
+<h2 id="DMA中断模型"><a href="#DMA中断模型" class="headerlink" title="DMA中断模型"></a>DMA中断模型</h2><p>其实数据被反复覆盖的问题在HAL库设计之初就有被考虑到过，HAL库也给出了相应的解决方案：<br><code>HAL_UART_RxHalfCpltCallback</code><br><code>HAL_UART_RxCpltCallback</code></p>
+<p>现在我们考虑如下的情形：</p>
+<p>首先使能 <code>DMA</code> 的 <code>Circular</code> 模式，开启数据的循环接收。随后创建一个 <code>Buffer[20]</code> 用来接收数据，并用 <code>R</code> 和 <code>W</code> 来标记当前缓冲区内读指针和写指针。且当 <code>Buffer[20]</code> 被填写到一半或者填满时，就触发对应的回调函数 <code>HT</code> 和 <code>TC</code> ；每当本次数据接收完毕，<code>I</code> 就会被触发，也就是空闲中断回调。</p>
+<p>此时可以将所有的内存写入问题归纳为如下五种模型<a target="_blank" rel="noopener" href="https://github.com/MaJerle/stm32-usart-uart-dma-rx-tx">(图源)</a>：</p>
+<p><img src="/img/240715/DMA_Circular.png" srcset="/img/loading.gif" lazyload alt="DMA Circular"></p>
+<ul>
+<li><p>情况 A:<br>收到10字节，触发 <code>HT</code> ，随后处理已接收的数据。</p>
+</li>
+<li><p>情况 B:<br>收到10字节，触发 <code>TC</code> ，处理现在从最后已知位置 <code>R</code> 开始，直到内存结束。DMA 处于循环模式，因此它会从缓冲区的开头继续传输数据，覆盖原有数据。</p>
+</li>
+<li><p>情况 C:<br>收到10字节，当接收到前<strong>6</strong>字节时，触发了 <code>HT</code> 。但在接下来<strong>4</strong>字节传输后，将再次触发 <code>I</code> 。</p>
+</li>
+<li><p>情况 D:<br>收到10字节，前<strong>4</strong>字节会触发 <code>TC</code> ，随后缓冲区溢出，回到顶点重新覆盖旧数据。接下来<strong>6</strong>字节成功传输到内存后，触发 <code>I</code> 。</p>
+</li>
+<li><p>情况 E:<br>收到<strong>30</strong>字节，超出缓冲区能处理的范围，有<strong>10</strong>字节会被直接覆盖。这时 <code>HT</code> 和 <code>TC</code> 就起到了作用，当刚好发到20个字节时，<code>HT</code> 和 <code>TC</code> 会被分别触发一次。而若这两次都已经被触发过了，还在有新的数据进入，并且一直覆盖过了原先的 <code>R</code> 指针，那么就说明发生了错误，需要及时进行相应的错误处理。</p>
+</li>
+</ul>
+<p>由上述模型可知，HAL库之所以只提供 <code>HT</code> 和 <code>TC</code> 这两个节点的回调，正是因为这两点能够满足最基本的<strong>数据溢出检查</strong>。</p>
+<p>即便数据溢出到能覆盖两轮以上(对于上述的模型也就是在20字节缓冲区里发送40字节及以上)，我们也可以凭中断被多次触发，而数据未被CPU及时处理，来判断UART接收出现了错误。</p>
+<h2 id="Callback问题"><a href="#Callback问题" class="headerlink" title="Callback问题"></a>Callback问题</h2><p>虽然上述想法很好，但是实践起来还是会有一些问题。</p>
+<p>首先IDLE中断会触发下列函数的回调：<br><code>HAL_UART_RxCpltCallback</code><br><code>HAL_UART_RxHalfCpltCallback</code><br><code>HAL_UARTEx_RxEventCallback</code></p>
+<p>那么考虑以下的情况，当数据恰好被填到一半的时候，理应有两次中断被调用：</p>
+<ol>
+<li>当数据被填充到一半时唤起“HAL_UART_RxHalfCpltCallback”</li>
+<li>随后Rx总线空闲，唤起“HAL_UARTEx_RxEventCallback”</li>
+</ol>
+<p>同理，被恰好填充到满时也应该有两次调用，对吧？</p>
+<p><strong>但是事实并非如此</strong>，被恰好填充到满时，数据缓冲区会被重置，并从缓冲区顶重新写入，此时IDLE中断并不会被唤起。</p>
+<p>这就给程序的判断造成了难题，是否能在这里截断？如果数据还没完，就直接将现在接收到的数据交给CPU，那得到的结果肯定是不正确的。</p>
+<p>另一个问题是，两次中断之间是肯定有时间间隙的。像H7这样的芯片，在满主频且串口压力较小的情况下，是真的可以做到在两次中断之间把现有截断的数据处理完成，进而导致结果错误的。</p>
+<p>这些问题的出现既有可能是HAL库设计不周，也有可能 UART IDLE 根本不是这样设计来用的。笔者本人水平一般，暂时没有得出有说服力的结论。之后关于这个问题若是有什么进展，会及时在这篇博客更新。</p>
+<hr>
+<p>倒是有一些比较偷懒的办法解决上述冲突，虽然不太优雅就是了。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs Cpp">__HAL_DMA_DISABLE_IT(&amp;DMA_RX_HANDLE, DMA_IT_HT);<br>__HAL_DMA_DISABLE_IT(&amp;DMA_RX_HANDLE, DMA_IT_TC);<br></code></pre></td></tr></table></figure>
+
+<p>用上述两个函数可以禁用 <code>HT</code> 和 <code>TC</code> 中断，此时就只有 UART IDLE 的中断会被调用。虽然此时缓冲区被恰好填充完整时，依然不会有任何中断会被调用。但上位机可以任意发送一位信息，唤起IDLE中断让其进行处理。</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/Embedded/" class="category-chain-item">Embedded</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/STM32/" class="print-no-link">#STM32</a>
+      
+        <a href="/tags/SPI/" class="print-no-link">#SPI</a>
+      
+        <a href="/tags/UART/" class="print-no-link">#UART</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>UART通信：IDLE+DMA的优化技巧</div>
+      <div>https://marisa9961.github.io/2024/07/15/240715-stm32-spi-communicate/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>Marisa9961</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2024年7月15日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="NC - 非商业性使用">
+                    <i class="iconfont icon-cc-nc"></i>
+                  </span>
+                </a>
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="ND - 禁止演绎">
+                    <i class="iconfont icon-cc-nd"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2025/01/10/250110-analysis-of-lock-in-amplifier/" title="锁相放大器：理论研究笔记">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">锁相放大器：理论研究笔记</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2024/05/12/240512-adf435x-introduce/" title="ADF435x锁相环驱动调试">
+                        <span class="hidden-mobile">ADF435x锁相环驱动调试</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="gitalk-container"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#gitalk-container', function() {
+      Fluid.utils.createCssLink('/css/gitalk.css')
+      Fluid.utils.createScript('https://lib.baomitu.com/gitalk/1.8.0/gitalk.min.js', function() {
+        var options = Object.assign(
+          {"clientID":"Ov23liCjWQo1Jij0zZpu","clientSecret":"7429fe27e71730443966d03f7d86b9022a011c40","repo":"Marisa9961.github.io","owner":"Marisa9961","admin":["Marisa9961"],"language":"zh-CN","labels":["Gitalk"],"perPage":10,"pagerDirection":"last","distractionFreeMode":false,"createIssueManually":true,"proxy":"https://cors-anywhere.azm.workers.dev/https://github.com/login/oauth/access_token"},
+          {
+            id: '1be8fcc74c26b198f343c59413129282'
+          }
+        )
+        var gitalk = new Gitalk(options);
+        gitalk.render('gitalk-container');
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+  
+  
+
+
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="/about" target="_self" rel="nofollow noopener"> <span style="font-weight: bold;">Marisa9961</span> </a>
+<br/>
+<a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <span style="margin: 0 4px;"> | </span> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+    <div class="statistics">
+  
+  
+
+  
+    
+      <span id="busuanzi_container_site_pv" style="display: none">
+        总访问量 
+        <span id="busuanzi_value_site_pv"></span>
+         次
+      </span>
+    
+    
+      <span id="busuanzi_container_site_uv" style="display: none">
+        总访客数 
+        <span id="busuanzi_value_site_uv"></span>
+         人
+      </span>
+    
+    
+
+  
+
+</div>
+
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    function isExpandAllEnabled() {
+      return CONFIG.toc && CONFIG.toc.expand_all === true;
+    }
+    function expandAllToc() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .tocbot-is-collapsed').removeClass('tocbot-is-collapsed');
+    }
+    function updateTocToggle($li, $childList) {
+      var $toggle = $li.children('.toc-toggle');
+      if ($toggle.length === 0) { return; }
+      var collapsed = $childList.hasClass('tocbot-is-collapsed');
+      $toggle
+        .toggleClass('toc-toggle-collapsed', collapsed)
+        .toggleClass('toc-toggle-expanded', !collapsed);
+    }
+    function bindTocToggle() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .toc-list-item').each(function() {
+        var $li = jQuery(this);
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) {
+          if ($li.children('.toc-toggle').length === 0) {
+            $li.prepend('<span class="toc-toggle toc-toggle-placeholder" aria-hidden="true">›</span>');
+          }
+          return;
+        }
+
+        if ($li.children('.toc-toggle').length === 0) {
+          $li.prepend('<span class="toc-toggle toc-toggle-expanded" aria-hidden="true">›</span>');
+        }
+        updateTocToggle($li, $childList);
+      });
+      jQuery('#toc-body').off('click.tocToggle').on('click.tocToggle', '.toc-toggle', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $li = jQuery(this).parent('.toc-list-item');
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) { return; }
+        $childList.toggleClass('tocbot-is-collapsed');
+        updateTocToggle($li, $childList);
+      });
+      if (!window.__tocToggleObserver) {
+        window.__tocToggleObserver = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type !== 'attributes' || mutation.attributeName !== 'class') { return; }
+            var $list = jQuery(mutation.target);
+            var $li = $list.parent('.toc-list-item');
+            if ($li.length === 0) { return; }
+            updateTocToggle($li, $list);
+          });
+        });
+        jQuery('#toc-body ol').each(function() {
+          window.__tocToggleObserver.observe(this, { attributes: true });
+        });
+      }
+    }
+    var tocConfig = Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc);
+    if (isExpandAllEnabled()) {
+      tocConfig.collapseDepth = 6;
+    }
+    window.tocbot.init(tocConfig);
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+    expandAllToc();
+    bindTocToggle();
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+        expandAllToc();
+        bindTocToggle();
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  
+      <script>
+        if (!window.MathJax) {
+          window.MathJax = {
+            tex    : {
+              inlineMath: { '[+]': [['$', '$']] }
+            },
+            loader : {
+              load: ['ui/lazy']
+            },
+            options: {
+              renderActions: {
+                insertedScript: [200, () => {
+                  document.querySelectorAll('mjx-container').forEach(node => {
+                    let target = node.parentNode;
+                    if (target.nodeName.toLowerCase() === 'li') {
+                      target.parentNode.classList.add('has-jax');
+                    }
+                  });
+                }, '', false]
+              }
+            }
+          };
+        } else {
+          MathJax.startup.document.state(0);
+          MathJax.texReset();
+          MathJax.typeset();
+          MathJax.typesetPromise();
+        }
+
+        Fluid.events.registerRefreshCallback(function() {
+          if ('MathJax' in window && MathJax.startup.document && typeof MathJax.startup.document.state === 'function') {
+            MathJax.startup.document.state(0);
+            MathJax.texReset();
+            MathJax.typeset();
+            MathJax.typesetPromise();
+          }
+        });
+      </script>
+    
+
+  <script  src="https://lib.baomitu.com/mathjax/3.2.2/es5/tex-mml-chtml.js" ></script>
+
+  <script defer src="/js/openkounter.js" ></script>
+
+  <script  src="/js/local-search.js" ></script>
+
+  <script defer src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

@@ -1,0 +1,1041 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.ico">
+  <link rel="icon" href="/img/fluid.ico">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Marisa9961">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="众所周知，嵌入式领域有很多优秀的三方开源库。例如 FreeRTOS 、 LVGL 、 CMSIS-DSP 和 LittleFS 等，都是大名鼎鼎的嵌入式三方库。利用这些库，可以大幅提升开发效率，轻松实现任务调度、图形界面等功能，无需再陷入裸机编程的重复造轮子中。 在嵌入式开发中，第三方库的引入方式直接影响项目的可维护性。虽然直接复制源码是最简单的方式，但会带来版本管理、依赖冲突和更新困难等问题。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="嵌入式三方库指南：以FreeRTOS与LVGL为例">
+<meta property="og:url" content="https://marisa9961.github.io/2025/05/21/250521-stm32-freertos-lvgl/index.html">
+<meta property="og:site_name" content="Marisa9961">
+<meta property="og:description" content="众所周知，嵌入式领域有很多优秀的三方开源库。例如 FreeRTOS 、 LVGL 、 CMSIS-DSP 和 LittleFS 等，都是大名鼎鼎的嵌入式三方库。利用这些库，可以大幅提升开发效率，轻松实现任务调度、图形界面等功能，无需再陷入裸机编程的重复造轮子中。 在嵌入式开发中，第三方库的引入方式直接影响项目的可维护性。虽然直接复制源码是最简单的方式，但会带来版本管理、依赖冲突和更新困难等问题。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://marisa9961.github.io/img/250521/cover.jpg">
+<meta property="article:published_time" content="2025-05-21T13:17:40.000Z">
+<meta property="article:modified_time" content="2026-09-14T11:49:55.810Z">
+<meta property="article:author" content="Marisa9961">
+<meta property="article:tag" content="FreeRTOS">
+<meta property="article:tag" content="LVGL">
+<meta property="article:tag" content="STM32">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://marisa9961.github.io/img/250521/cover.jpg">
+  
+  
+    <meta name="referrer" content="no-referrer-when-downgrade">
+  
+  
+  <title>嵌入式三方库指南：以FreeRTOS与LVGL为例 - Marisa9961</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"marisa9961.github.io","root":"/","version":"1.9.9","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"expand_all":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":true},"openkounter":{"server_url":"https://open-kounter.mintimate.cn","path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+  
+
+
+
+
+  
+<meta name="generator" content="Hexo 8.1.2"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Marisa9961</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content (desktop) -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/links/" target="_self">
+                <i class="iconfont icon-link-fill"></i>
+                <span>友链</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Mobile grid menu overlay -->
+<div id="mobile-grid-menu" class="d-lg-none">
+  <div class="mobile-grid-menu-inner">
+    <div class="container">
+      <div class="row">
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-home-fill"></i>
+                  <span>首页</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/archives/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-archive-fill"></i>
+                  <span>归档</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/links/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-link-fill"></i>
+                  <span>友链</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/about/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-user-fill"></i>
+                  <span>关于</span>
+                </div>
+              </a>
+            </div>
+          
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-search-btn">
+            <a href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-search"></i>
+                <span>搜索</span>
+              </div>
+            </a>
+          </div>
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-color-toggle-btn"
+               data-label-light="开灯"
+               data-label-dark="关灯">
+            <a href="javascript:;" aria-label="Color Toggle">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-dark" id="mobile-color-toggle-icon"></i>
+                <span id="mobile-color-toggle-label">关灯</span>
+              </div>
+            </a>
+          </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.jpg') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="嵌入式三方库指南：以FreeRTOS与LVGL为例"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2025-05-21 21:17" pubdate>
+          2025年5月21日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          9.3k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          78 分钟
+        
+      </span>
+    
+
+    
+    
+      
+        <span id="busuanzi_container_page_pv" style="display: none">
+          <i class="iconfont icon-eye" aria-hidden="true"></i>
+          <span id="busuanzi_value_page_pv"></span> 次
+        </span>
+        
+
+      
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">嵌入式三方库指南：以FreeRTOS与LVGL为例</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <p>众所周知，嵌入式领域有很多优秀的三方开源库。例如 <a target="_blank" rel="noopener" href="https://www.freertos.org/">FreeRTOS</a> 、 <a target="_blank" rel="noopener" href="https://lvgl.io/">LVGL</a> 、 <a target="_blank" rel="noopener" href="https://arm-software.github.io/CMSIS-DSP">CMSIS-DSP</a> 和 <a target="_blank" rel="noopener" href="https://github.com/littlefs-project/littlefs">LittleFS</a> 等，都是大名鼎鼎的嵌入式三方库。利用这些库，可以大幅提升开发效率，轻松实现任务调度、图形界面等功能，无需再陷入裸机编程的重复造轮子中。</p>
+<p>在嵌入式开发中，第三方库的引入方式直接影响项目的可维护性。虽然直接复制源码是最简单的方式，但会带来版本管理、依赖冲突和更新困难等问题。</p>
+<p>主流语言生态大多通过包管理器（如 Python 的 pip、Rust 的 Cargo）解决这类问题。然而在 C&#x2F;C++ 领域，虽然已有 vcpkg、Conan 等优秀工具，但对嵌入式平台（特别是资源受限的 MCU）的支持仍不够完善，许多库缺乏预编译的嵌入式版本。</p>
+<p>因此，我们在很多情况下不得不手动引入三方库来进行开发，本篇博客就将以我个人开发的嵌入式项目 <a target="_blank" rel="noopener" href="https://github.com/Marisa9961/SmartBand">SmartBand</a> 为例，讲解笔者在开发过程当中是如何实现以统一方式管理三方库的引入。</p>
+<h2 id="为什么要用CMake"><a href="#为什么要用CMake" class="headerlink" title="为什么要用CMake"></a>为什么要用CMake</h2><blockquote>
+<p>CMake是个一个开源的跨平台自动化建构系统，用来管理软件建置的程序，并不依赖于某特定编译器，并可支持多层目录、多个应用程序与多个函数库。 它用配置文件控制建构过程的方式和Unix的make相似，只是CMake的配置文件取名为CMakeLists.txt。</p>
+</blockquote>
+<p>本次项目的构建系统采用了 <code>CMake+Ninja</code> 的形式，虽然 CMake 在C&#x2F;C++圈子里一直以来广受诟病，且在国内普遍使用 keil 这类 IDE 工具进行编写嵌入式代码的形势下， CMake 的传播度并没有那么广，但其在嵌入式领域的地位依然不容置疑。像 FreeRTOS 和 LVGL 这类成熟的三方库，通常都会提供标准化的 CMakeLists.txt 构建脚本，以便于进行项目的管理和编译。</p>
+<p>再加上 Ninja 在编译性能上的优越性，能够大大提高编译速度，提升编写和调试时的幸福感，因此本项目选择使用了 <code>CMake+Ninja</code> 作为构建系统。</p>
+<p>除此之外，还有一点值得提起的是， CMake 在构建编译信息时可以选择导出 <code>compile_commands.json</code> 。借助 VSCode 中的 <a target="_blank" rel="noopener" href="https://clangd.llvm.org/">Clangd</a> 插件，再配合 Clang-Tidy 强大的静态检查功能，能够极大提升编写 C&#x2F;C++ 时的效率和准确性。</p>
+<p>在这一点上其实并非只有 CMake 能够做到，其他构建工具例如 Bazel 和 Meson 也都有类似的功能，包括近来新兴的构建工具 Xmake 也都能够生成 <code>compile_commands.json</code> ，实现更好的静态检查。</p>
+<p>对于这些其他的构建系统，不在本文的讨论范围内，如果各位读者有兴趣可以自行了解。</p>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>嵌入式适用性</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CMake</td>
+<td>跨平台，支持裸机和RTOS</td>
+<td>泛用性强，语法复杂</td>
+</tr>
+<tr>
+<td>Make</td>
+<td>需手动编写规则，维护困难</td>
+<td>精神负担重，跨平台性差</td>
+</tr>
+<tr>
+<td>Keil</td>
+<td>仅限ARM，厂商锁定</td>
+<td>依赖厂商，无法导出编译数据库</td>
+</tr>
+</tbody></table>
+<h2 id="如何获取三方库"><a href="#如何获取三方库" class="headerlink" title="如何获取三方库"></a>如何获取三方库</h2><p>一般的开源库都会选择在 <code>Github</code> 存储源代码，所以在 Release 页面就可以获取到当前最新的发行版本。如果没有 Release 发布页面，也可以阅读 README 文件来寻找线索。</p>
+<p>不过虽然在 Github 可以直接获取当前的源码，但这类代码常常是处在版本更迭之间，还未修缮完毕或者还未开发完成的状态，因此并不建议直接引入到自己的项目当中。</p>
+<p>对于维护较为完善的开源项目，他们通常都有更稳定的版本供以选择，叫做 LTS 版（长期支持版本），如下图所示。</p>
+<p><img src="/img/250521/FreeRTOS%E5%AE%98%E7%BD%91%E4%B8%8B%E8%BD%BD%E9%A1%B5%E9%9D%A2.jpg" srcset="/img/loading.gif" lazyload alt="FreeRTOS官网下载页面"></p>
+<p>这类版本通常是长期支持，不会由于内容更新而引入新的 Bug 。无论是对于商业开发还是个人开发，选择 LTS 版本都有利于长期稳定。</p>
+<p>在开发过程中，如果有足够的理由怀疑三方库出现了问题，也可以在相应仓库的 issue 里提出。但如果只是由于自己对于三方库功能使用不当造成的问题，还是建议自行尝试解决之后再提出，不要无效提问。</p>
+<h2 id="引入方式的选择"><a href="#引入方式的选择" class="headerlink" title="引入方式的选择"></a>引入方式的选择</h2><p>繁琐的话题到此为止，现在开始讲解当拿到一个库之后，如何阅读其中的提示信息，并将库引入到自己的项目。</p>
+<p>接下来，以 FreeRTOS 的 LTS 版本为例讲解，请各位可以试着下载一份源码，并按照步骤对照阅读。</p>
+<p>首先，当我们拿到一份陌生的开源库，应该首先寻找其中的使用示例或者教学文档。按照文档中提示的内容进行，能够尽可能避开错误和误区。</p>
+<p>有些三方开源仓库的构建示例会直接放在根目录当中，也有些会放在 examples 文件夹内，而 FreeRTOS-Kernel 就属于后者。现在打开路径 <code>FreeRTOS-Kernel\examples\cmake_example</code> ，可以看到如下的脚本代码。</p>
+<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br></pre></td><td class="code"><pre><code class="hljs cmake"><span class="hljs-keyword">cmake_minimum_required</span>(VERSION <span class="hljs-number">3.15</span>)<br><span class="hljs-keyword">project</span>(example)<br><br><span class="hljs-keyword">set</span>(FREERTOS_KERNEL_PATH <span class="hljs-string">&quot;../../&quot;</span>)<br><br><span class="hljs-comment"># Add the freertos_config for FreeRTOS-Kernel</span><br><span class="hljs-keyword">add_library</span>(freertos_config INTERFACE)<br><br><span class="hljs-keyword">target_include_directories</span>(freertos_config<br>    INTERFACE<br>    <span class="hljs-string">&quot;../template_configuration&quot;</span><br>)<br><br><span class="hljs-keyword">if</span> (<span class="hljs-keyword">DEFINED</span> FREERTOS_SMP_EXAMPLE <span class="hljs-keyword">AND</span> FREERTOS_SMP_EXAMPLE <span class="hljs-keyword">STREQUAL</span> <span class="hljs-string">&quot;1&quot;</span>)<br>    <span class="hljs-keyword">message</span>(STATUS <span class="hljs-string">&quot;Build FreeRTOS SMP example&quot;</span>)<br>    <span class="hljs-comment"># Adding the following configurations to build SMP template port</span><br>    <span class="hljs-keyword">add_compile_options</span>( -DconfigNUMBER_OF_CORES=<span class="hljs-number">2</span> -DconfigUSE_PASSIVE_IDLE_HOOK=<span class="hljs-number">0</span> )<br><span class="hljs-keyword">endif</span>()<br><br><span class="hljs-comment"># Select the heap port.  values between 1-4 will pick a heap.</span><br><span class="hljs-keyword">set</span>(FREERTOS_HEAP <span class="hljs-string">&quot;4&quot;</span> CACHE <span class="hljs-keyword">STRING</span> <span class="hljs-string">&quot;&quot;</span> FORCE)<br><br><span class="hljs-comment"># Select the native compile PORT</span><br><span class="hljs-keyword">set</span>(FREERTOS_PORT <span class="hljs-string">&quot;TEMPLATE&quot;</span> CACHE <span class="hljs-keyword">STRING</span> <span class="hljs-string">&quot;&quot;</span> FORCE)<br><br><span class="hljs-comment"># Adding the FreeRTOS-Kernel subdirectory</span><br><span class="hljs-keyword">add_subdirectory</span>(<span class="hljs-variable">$&#123;FREERTOS_KERNEL_PATH&#125;</span> FreeRTOS-Kernel)<br><br><span class="hljs-comment">########################################################################</span><br><span class="hljs-comment"># Overall Compile Options</span><br><span class="hljs-comment"># Note the compile option strategy is to error on everything and then</span><br><span class="hljs-comment"># Per library opt-out of things that are warnings/errors.</span><br><span class="hljs-comment"># This ensures that no matter what strategy for compilation you take, the</span><br><span class="hljs-comment"># builds will still occur.</span><br><span class="hljs-comment">#</span><br><span class="hljs-comment"># Only tested with GNU and Clang.</span><br><span class="hljs-comment"># Other options are https://cmake.org/cmake/help/latest/variable/CMAKE_LANG_COMPILER_ID.html#variable:CMAKE_%3CLANG%3E_COMPILER_ID</span><br><span class="hljs-comment"># Naming of compilers translation map:</span><br><span class="hljs-comment">#</span><br><span class="hljs-comment">#   FreeRTOS    | CMake</span><br><span class="hljs-comment">#   -------------------</span><br><span class="hljs-comment">#   CCS         | ?TBD?</span><br><span class="hljs-comment">#   GCC         | GNU, Clang, *Clang Others?</span><br><span class="hljs-comment">#   IAR         | IAR</span><br><span class="hljs-comment">#   Keil        | ARMCC</span><br><span class="hljs-comment">#   MSVC        | MSVC # Note only for MinGW?</span><br><span class="hljs-comment">#   Renesas     | ?TBD?</span><br><br><span class="hljs-keyword">target_compile_options</span>(freertos_kernel PRIVATE<br>    <span class="hljs-comment">### Gnu/Clang C Options</span><br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,GNU&gt;:-fdiagnostics-color=always&gt;<br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang&gt;:-fcolor-diagnostics&gt;<br><br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang,GNU&gt;:-Wall&gt;<br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang,GNU&gt;:-Wextra&gt;<br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang,GNU&gt;:-Wpedantic&gt;<br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang,GNU&gt;:-Werror&gt;<br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang,GNU&gt;:-Wconversion&gt;<br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang&gt;:-Weverything&gt;<br><br>    <span class="hljs-comment"># Suppressions required to build clean with clang.</span><br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang&gt;:-Wno-unused-macros&gt;<br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang&gt;:-Wno-padded&gt;<br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang&gt;:-Wno-missing-variable-declarations&gt;<br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang&gt;:-Wno-covered-switch-default&gt;<br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang&gt;:-Wno-cast-align&gt; )<br><br><span class="hljs-keyword">add_executable</span>(<span class="hljs-variable">$&#123;PROJECT_NAME&#125;</span><br>    main.c<br>)<br><br><span class="hljs-keyword">target_link_libraries</span>(<span class="hljs-variable">$&#123;PROJECT_NAME&#125;</span> freertos_kernel freertos_config)<br><br><span class="hljs-keyword">set_property</span>(<span class="hljs-keyword">TARGET</span> freertos_kernel PROPERTY C_STANDARD <span class="hljs-number">90</span>)<br></code></pre></td></tr></table></figure>
+
+<p>如果读者不了解 CMake 的语法细节，第一次看到这样的脚本应该还是比较茫然的。但是没关系， CMake 的可读性没有那么不堪，各位即便是第一次接触 CMakeLists.txt ，也可以照猫画虎，模仿其中的写法。</p>
+<p>首先，我们会在第一行看到， CMake 脚本必须指定当前使用的 CMake 最低版本，属于固定写法，照抄即可。</p>
+<p>随后会看到脚本指定了 FREERTOS_KERNEL_PATH 的相对路径，这里由于该脚本将自己放在了子路径里，所以需要返回前两级路径，改写的时候就需要将路径指定到当前存储 FreeRTOS 的路径，适当调整。</p>
+<p>然后脚本以库的形式创建了 freertos_config 作为接口库，引入了 <code>../template_configuration</code> 作为头文件路径，而打开相关文件夹， FreeRTOSConfig.h 中就负责定义 FreeRTOS 的配置选项，根据不同的 CPU 类型和架构，进行自定义修改。</p>
+<p>下面这一部分如果不提前了解 FreeRTOS 的设计可能读不明白，这里指定的是如果该 CPU 存在多核处理器，就需要额外增加一些特殊的编译选项。如果只是普通的单核 CPU 就无需考虑这个问题。</p>
+<p>（出自源文件14行）</p>
+<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs cmake"><span class="hljs-keyword">if</span> (<span class="hljs-keyword">DEFINED</span> FREERTOS_SMP_EXAMPLE <span class="hljs-keyword">AND</span> FREERTOS_SMP_EXAMPLE <span class="hljs-keyword">STREQUAL</span> <span class="hljs-string">&quot;1&quot;</span>)<br>    <span class="hljs-keyword">message</span>(STATUS <span class="hljs-string">&quot;Build FreeRTOS SMP example&quot;</span>)<br>    <span class="hljs-comment"># Adding the following configurations to build SMP template port</span><br>    <span class="hljs-keyword">add_compile_options</span>( -DconfigNUMBER_OF_CORES=<span class="hljs-number">2</span> -DconfigUSE_PASSIVE_IDLE_HOOK=<span class="hljs-number">0</span> )<br><span class="hljs-keyword">endif</span>()<br></code></pre></td></tr></table></figure>
+
+<p>接下来需要选择<a target="_blank" rel="noopener" href="https://www.freertos.org/Documentation/02-Kernel/02-Kernel-features/09-Memory-management/01-Memory-management">内存管理方案</a>，说白了就是从1~4的四种方案中选择一个作为当前的内存管理。因为FreeRTOS支持动态内存分配，所以需要权衡性能与便利之间的优劣。</p>
+<p>也属于提前了解才能知道如何选择的选项，因此在引入自己的项目前真的需要认真通读一遍功能才行。</p>
+<p>接下来提到 <code>FREERTOS_PORT</code> 可以暂时忽略，不会影响到引用项目的过程。</p>
+<p>而再下一步，就进入到了关于主要代码的引入。</p>
+<p>（出自源文件27行）</p>
+<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs cmake"><span class="hljs-comment"># Adding the FreeRTOS-Kernel subdirectory</span><br><span class="hljs-keyword">add_subdirectory</span>(<span class="hljs-variable">$&#123;FREERTOS_KERNEL_PATH&#125;</span> FreeRTOS-Kernel)<br></code></pre></td></tr></table></figure>
+
+<p>首先是一大段的注释信息，提到关于不同编译器构建时的编译策略和编译器选择。这里默认采用 GCC 来作为编译器，具体可以参考笔者以前写过的 <a target="_blank" rel="noopener" href="https://github.com/Marisa9961/stm32-cmake-templete">stm32-cmake-templete</a> 学习。下面提到的一大段都是非常常见的编译选项，想要了解相关内容可以在 <a target="_blank" rel="noopener" href="https://gcc.gnu.org/onlinedocs/gcc/Option-Summary.html">Option Summary</a> 中查找，不过多展开。这里主要做的内容是根据不同的编译器采取不同的编译选项，并将所有警告视为错误。</p>
+<p>（出自源文件49行）</p>
+<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs cmake"><span class="hljs-keyword">target_compile_options</span>(freertos_kernel PRIVATE<br>    <span class="hljs-comment">### Gnu/Clang C Options</span><br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,GNU&gt;:-fdiagnostics-color=always&gt;<br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang&gt;:-fcolor-diagnostics&gt;<br><br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang,GNU&gt;:-Wall&gt;<br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang,GNU&gt;:-Wextra&gt;<br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang,GNU&gt;:-Wpedantic&gt;<br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang,GNU&gt;:-Werror&gt;<br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang,GNU&gt;:-Wconversion&gt;<br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang&gt;:-Weverything&gt;<br><br>    <span class="hljs-comment"># Suppressions required to build clean with clang.</span><br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang&gt;:-Wno-unused-macros&gt;<br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang&gt;:-Wno-padded&gt;<br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang&gt;:-Wno-missing-variable-declarations&gt;<br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang&gt;:-Wno-covered-switch-default&gt;<br>    $&lt;$&lt;COMPILE_LANG_AND_ID:C,Clang&gt;:-Wno-cast-align&gt; )<br></code></pre></td></tr></table></figure>
+
+<p>但是在引入到自己的项目时可以直接指定，并不一定完全遵照这个写法，因此虽然看着内容很多很复杂，但其实都可以忽略。</p>
+<p>再接下来就是生成可执行文件，将 <code>main.c</code> （以及你项目中的所有源文件）引入到构建系统，并生成代码。然后将前面创建的两个库一并链接到可执行文件的编译过程中，实现模块间解耦。</p>
+<p>怎么样，这样就读完了脚本，是不是还是不会写（？</p>
+<h2 id="简化引入方式"><a href="#简化引入方式" class="headerlink" title="简化引入方式"></a>简化引入方式</h2><p>具体到笔者所写的项目当中，并没有采用这种复杂的方法。所以读完上面的分析，如果还是不会写也没关系，只需要看接下来的内容就能掌握更通用的引用方法。</p>
+<p>这次以 LVGL 为例讲解，同样的还是推荐下载一份源代码，自行尝试解读其中的构建示例。</p>
+<p>首先先来看 LVGL 引入的时候的文件结构：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs text">third-party/LVGL/<br>├── lvgl/               # 官方源码<br>│   ├── src/...         # 源文件<br>│   ├── lv_version.c    # 版本号<br>│   └── lvgl.h          # 通用头文件<br>├── porting/            # 移植代码<br>│   ├── lv_port_disp.c  # 移植屏幕驱动<br>│   ├── lv_port_disp.h<br>│   ├── lv_port_indev.c # 移植触屏驱动<br>│   └── lv_port_indev.h<br>├── CMakeLists.txt      # 子构建脚本<br>└── lv_conf.h           # lvgl设置<br></code></pre></td></tr></table></figure>
+
+<p>注意，其中只有 <code>porting/</code> 与 <code>lv_conf.h</code> 是需要手动设置的，其他文件内容原则上不应该随意改动。</p>
+<p>首先是 <code>lvgl/</code> 目录，这里存放从官网下载的原始代码，包括 <code>src/</code> 子目录里的核心源代码、 <code>lv_version.c</code> 版本文件以及 <code>lvgl.h</code> 主头文件。这些文件组成了 LVGL 的核心功能，一般不应该修改这里面的内容，这样以后升级版本时直接替换整个目录就行。</p>
+<p>然后是 <code>porting</code> 目录，这里放的是需要自己编写的硬件适配代码。主要包含两个关键文件： <code>lv_port_disp.c</code> 用于实现屏幕显示驱动，负责初始化屏幕、管理缓冲区和刷新画面； <code>lv_port_indev.c</code> 用于实现输入设备驱动，处理触摸屏或者按键的输入。这两个文件需要根据具体硬件来编写，比如在 STM32 上可能要操作 LTDC 或者 SPI 接口。</p>
+<p>还有一个重要的 <code>lv_conf.h</code> 配置文件，这个文件用来设置 LVGL 的各项参数。比如在这里定义屏幕的分辨率、颜色深度，启用或禁用各种功能模块，调整内存池大小等。这个文件直接影响 LVGL 的运行效果和资源占用。</p>
+<p>最后是 <code>CMakeLists.txt</code> 构建脚本，它负责把这些部分组织起来。脚本里会明确定义哪些是官方源代码，哪些是自己写的移植代码，并确保所有头文件路径都正确设置。这样构建系统就能把各个部分正确编译链接到一起。</p>
+<p>这种组织方式的好处很明显：官方代码和自己写的代码完全分开，升级时互不影响；不同的硬件平台可以通过不同的 <code>porting</code> 实现来支持；通过修改配置文件就能调整功能，不需要动核心代码。</p>
+<hr>
+<p>接下来就重点讲解子构建脚本的内容应当如何编写：</p>
+<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><code class="hljs cmake"><span class="hljs-comment"># Set the LVGL root directory</span><br><span class="hljs-keyword">set</span>(LVGL_ROOT_DIR   <span class="hljs-string">&quot;$&#123;CMAKE_SOURCE_DIR&#125;/third-party/LVGL&quot;</span>)<br><span class="hljs-keyword">set</span>(LVGL_SRC_DIR    <span class="hljs-string">&quot;$&#123;LVGL_ROOT_DIR&#125;/lvgl&quot;</span>)<br><span class="hljs-keyword">set</span>(LVGL_PORT_DIR   <span class="hljs-string">&quot;$&#123;LVGL_ROOT_DIR&#125;/porting&quot;</span>)<br><br><span class="hljs-comment"># Build LVGL library</span><br><span class="hljs-keyword">add_library</span>(lvgl INTERFACE)<br><br><span class="hljs-comment"># Set sources used for LVGL components</span><br><span class="hljs-keyword">file</span>(GLOB_RECURSE SOURCES<br>    <span class="hljs-variable">$&#123;LVGL_SRC_DIR&#125;</span>/src/*.c <br>    <span class="hljs-variable">$&#123;LVGL_SRC_DIR&#125;</span>/src/*.S <br>    <span class="hljs-variable">$&#123;LVGL_PORT_DIR&#125;</span>/*.c<br>)<br><br><span class="hljs-keyword">target_sources</span>(lvgl INTERFACE<br>    <span class="hljs-variable">$&#123;SOURCES&#125;</span><br>)<br><br><span class="hljs-comment"># Include root and optional parent path of LV_CONF_PATH</span><br><span class="hljs-keyword">target_include_directories</span>(lvgl INTERFACE<br>    <span class="hljs-variable">$&#123;LVGL_ROOT_DIR&#125;</span><br>)<br></code></pre></td></tr></table></figure>
+
+<p>内容较为简单易懂，主要执行的步骤为建立路径变量、创建接口库、添加源文件内容、添加头文件路径。这样就能快速将三方库文件引入到自己的项目中，而且具有良好的隔离性，每个三方库都拥有自己的子构建脚本，将所有的子构建脚本汇总在根目录下的 <code>CMakeLists.txt</code> 中使用诸如 <code>add_subdirectory(third-party/LVGL)</code> 这样的函数就能快速引入 LVGL 的库文件。</p>
+<p>总而言之，将三方库代码统一存放在 <code>third-party</code> 当中，并在每个库内建立 <code>CMakeLists.txt</code> 来进行管理，能提升项目的条理性。</p>
+<p>非常简单的一段脚本对吧，掌握了基本 CMake 语法之后可以轻易读懂。所以我说的简化引入方式并没有什么神秘之处。因此，比起寻找更简洁的构建方式，不如先从项目的文件管理下手，将引入三方库的工作进行解耦设计，这样就能使得代码设计更加简洁。</p>
+<h2 id="补充点没讲到的"><a href="#补充点没讲到的" class="headerlink" title="补充点没讲到的"></a>补充点没讲到的</h2><p>在 <a target="_blank" rel="noopener" href="https://github.com/Marisa9961/SmartBand">SmartBand</a> 项目仓库中，我总共引入了 LVGL 、 LittleFS ，并没有出现 FreeRTOS 的源文件和构建脚本。这是因为 STM32CubeMX 中提供的 CMSIS-RTOS 兼容层已经包含了这些源代码，而这些源代码又被我的 <code>cmake/stm32cubemx.cmake</code> 所包含，所以实际上可以省去这个步骤。</p>
+<p>另一个没有在本篇博客中举例讲解的 LittleFS 可以自行查看，原理大致相同，但是其源代码并不提供接口耦合， <code>LittleFS/porting</code> 是我仿照 LVGL 的接口自行编写的，如有想要借鉴的可以自行研究。</p>
+<blockquote>
+<p>在本文结束后的半年时间里，笔者偶然了解到了 RT-Thread 对于嵌入式包管理的尝试<br>各位如果有兴趣的话可以自行尝试了解 <a target="_blank" rel="noopener" href="https://github.com/RT-Thread/env">https://github.com/RT-Thread/env</a></p>
+</blockquote>
+<hr>
+<p><strong>推荐阅读</strong></p>
+<p>CMake Tutorial: <a target="_blank" rel="noopener" href="https://cmake.org/cmake/help/latest/guide/tutorial/">https://cmake.org/cmake/help/latest/guide/tutorial/</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/Embedded/" class="category-chain-item">Embedded</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/STM32/" class="print-no-link">#STM32</a>
+      
+        <a href="/tags/FreeRTOS/" class="print-no-link">#FreeRTOS</a>
+      
+        <a href="/tags/LVGL/" class="print-no-link">#LVGL</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>嵌入式三方库指南：以FreeRTOS与LVGL为例</div>
+      <div>https://marisa9961.github.io/2025/05/21/250521-stm32-freertos-lvgl/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>Marisa9961</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2025年5月21日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="NC - 非商业性使用">
+                    <i class="iconfont icon-cc-nc"></i>
+                  </span>
+                </a>
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="ND - 禁止演绎">
+                    <i class="iconfont icon-cc-nd"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/01/27/260127-analysis-of-chopper-opamps/" title="斩波放大器：理论研究笔记">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">斩波放大器：理论研究笔记</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2025/01/10/250110-analysis-of-lock-in-amplifier/" title="锁相放大器：理论研究笔记">
+                        <span class="hidden-mobile">锁相放大器：理论研究笔记</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="gitalk-container"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#gitalk-container', function() {
+      Fluid.utils.createCssLink('/css/gitalk.css')
+      Fluid.utils.createScript('https://lib.baomitu.com/gitalk/1.8.0/gitalk.min.js', function() {
+        var options = Object.assign(
+          {"clientID":"Ov23liCjWQo1Jij0zZpu","clientSecret":"7429fe27e71730443966d03f7d86b9022a011c40","repo":"Marisa9961.github.io","owner":"Marisa9961","admin":["Marisa9961"],"language":"zh-CN","labels":["Gitalk"],"perPage":10,"pagerDirection":"last","distractionFreeMode":false,"createIssueManually":true,"proxy":"https://cors-anywhere.azm.workers.dev/https://github.com/login/oauth/access_token"},
+          {
+            id: '6faab4f0350e39611f6108f14515b49b'
+          }
+        )
+        var gitalk = new Gitalk(options);
+        gitalk.render('gitalk-container');
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+  
+  
+
+
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="/about" target="_self" rel="nofollow noopener"> <span style="font-weight: bold;">Marisa9961</span> </a>
+<br/>
+<a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <span style="margin: 0 4px;"> | </span> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+    <div class="statistics">
+  
+  
+
+  
+    
+      <span id="busuanzi_container_site_pv" style="display: none">
+        总访问量 
+        <span id="busuanzi_value_site_pv"></span>
+         次
+      </span>
+    
+    
+      <span id="busuanzi_container_site_uv" style="display: none">
+        总访客数 
+        <span id="busuanzi_value_site_uv"></span>
+         人
+      </span>
+    
+    
+
+  
+
+</div>
+
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    function isExpandAllEnabled() {
+      return CONFIG.toc && CONFIG.toc.expand_all === true;
+    }
+    function expandAllToc() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .tocbot-is-collapsed').removeClass('tocbot-is-collapsed');
+    }
+    function updateTocToggle($li, $childList) {
+      var $toggle = $li.children('.toc-toggle');
+      if ($toggle.length === 0) { return; }
+      var collapsed = $childList.hasClass('tocbot-is-collapsed');
+      $toggle
+        .toggleClass('toc-toggle-collapsed', collapsed)
+        .toggleClass('toc-toggle-expanded', !collapsed);
+    }
+    function bindTocToggle() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .toc-list-item').each(function() {
+        var $li = jQuery(this);
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) {
+          if ($li.children('.toc-toggle').length === 0) {
+            $li.prepend('<span class="toc-toggle toc-toggle-placeholder" aria-hidden="true">›</span>');
+          }
+          return;
+        }
+
+        if ($li.children('.toc-toggle').length === 0) {
+          $li.prepend('<span class="toc-toggle toc-toggle-expanded" aria-hidden="true">›</span>');
+        }
+        updateTocToggle($li, $childList);
+      });
+      jQuery('#toc-body').off('click.tocToggle').on('click.tocToggle', '.toc-toggle', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $li = jQuery(this).parent('.toc-list-item');
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) { return; }
+        $childList.toggleClass('tocbot-is-collapsed');
+        updateTocToggle($li, $childList);
+      });
+      if (!window.__tocToggleObserver) {
+        window.__tocToggleObserver = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type !== 'attributes' || mutation.attributeName !== 'class') { return; }
+            var $list = jQuery(mutation.target);
+            var $li = $list.parent('.toc-list-item');
+            if ($li.length === 0) { return; }
+            updateTocToggle($li, $list);
+          });
+        });
+        jQuery('#toc-body ol').each(function() {
+          window.__tocToggleObserver.observe(this, { attributes: true });
+        });
+      }
+    }
+    var tocConfig = Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc);
+    if (isExpandAllEnabled()) {
+      tocConfig.collapseDepth = 6;
+    }
+    window.tocbot.init(tocConfig);
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+    expandAllToc();
+    bindTocToggle();
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+        expandAllToc();
+        bindTocToggle();
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  
+      <script>
+        if (!window.MathJax) {
+          window.MathJax = {
+            tex    : {
+              inlineMath: { '[+]': [['$', '$']] }
+            },
+            loader : {
+              load: ['ui/lazy']
+            },
+            options: {
+              renderActions: {
+                insertedScript: [200, () => {
+                  document.querySelectorAll('mjx-container').forEach(node => {
+                    let target = node.parentNode;
+                    if (target.nodeName.toLowerCase() === 'li') {
+                      target.parentNode.classList.add('has-jax');
+                    }
+                  });
+                }, '', false]
+              }
+            }
+          };
+        } else {
+          MathJax.startup.document.state(0);
+          MathJax.texReset();
+          MathJax.typeset();
+          MathJax.typesetPromise();
+        }
+
+        Fluid.events.registerRefreshCallback(function() {
+          if ('MathJax' in window && MathJax.startup.document && typeof MathJax.startup.document.state === 'function') {
+            MathJax.startup.document.state(0);
+            MathJax.texReset();
+            MathJax.typeset();
+            MathJax.typesetPromise();
+          }
+        });
+      </script>
+    
+
+  <script  src="https://lib.baomitu.com/mathjax/3.2.2/es5/tex-mml-chtml.js" ></script>
+
+  <script defer src="/js/openkounter.js" ></script>
+
+  <script  src="/js/local-search.js" ></script>
+
+  <script defer src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
